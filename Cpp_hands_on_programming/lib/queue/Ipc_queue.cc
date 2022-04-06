@@ -15,7 +15,9 @@ void Ipc_queue::send()
     int size, total(0), bytes;
     std::string filesize;
 
-    size = getFileSize(filename);
+   	if ((size = getFileSize(filename)) == -1) {
+		throw(std::runtime_error("Ipc_method:: getFileSize"));
+	}
     // initialize queue attributes
     attribute_init(DATA_SIZE, 10); // max size 8k, max msg 10
 
@@ -97,7 +99,9 @@ void Ipc_queue::receive()
         total += bytes;
     } while (total < size);
     // remove the queue name
-    newFileSize = getFileSize(filename);
+    if ((newFileSize = getFileSize(filename)) == -1) {
+		throw(std::runtime_error("Ipc_method:: getFileSize"));
+	}
     if (newFileSize == size) {
         std::cout << "File is successfully transferred" << std::endl;
     } else {

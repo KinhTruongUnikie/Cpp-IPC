@@ -8,14 +8,15 @@
 
 int main(int argc, char* argv[]) {
 	try {
-		std::shared_ptr<Ipc_info> info;
+		Ipc_info info;
 		Prog_init start;
 		start.printInstruction();
 		info = start.checkOptions(argc, argv);
-		start.run_IPC(info, RECEIVE);
+		start.run_IPC(info, Send_or_receive::RECEIVE);
 	}
 	catch(const std::exception &e) {
-		std::cout << "Error: " << e.what() << std::endl;
+		std::cerr << "Error: " << e.what() << std::endl;
+		std::rethrow_exception(std::current_exception());
 	}
 	return 0;
 }

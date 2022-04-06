@@ -6,8 +6,8 @@
 class Prog_init {
 public:
     void printInstruction();
-    std::shared_ptr<Ipc_info> checkOptions (int argc, char** argv);
-    void run_IPC(std::shared_ptr<Ipc_info> info,  send_or_receive send);
+    Ipc_info checkOptions (int argc, char** argv);
+    void run_IPC(const Ipc_info &info,  Send_or_receive side);
 };
-
+    
 #endif

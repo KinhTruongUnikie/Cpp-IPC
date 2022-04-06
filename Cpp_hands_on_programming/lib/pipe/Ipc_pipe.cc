@@ -8,17 +8,15 @@
 
 void Ipc_pipe::send() {
     std::cout << "Starting pipeSend.." << std::endl;
-	#if 1
 	// remove potentially existing FIFO
-	remove(name.c_str());    
+	unlink(name.c_str());    
 	int fdp, size, total(0), bytes_read(0), bytes_write(0);
 	std::vector<char> buffer(PIPE_BUF);
 	std::ifstream in;
 
 	// create a name pipe
 	if (mkfifo(name.c_str(), 0666) == -1) {
-		perror("mkfifo");
-		exit(EXIT_FAILURE);
+		throw(std::runtime_error("Ipc_pipe::send: mkfifo"));
 	}
 
 	// open name pipe
@@ -27,7 +25,9 @@ void Ipc_pipe::send() {
 		throw(std::runtime_error("Ipc_pipe::send: open pipe"));
 	}
 
-	size = getFileSize(filename);
+	if ((size = getFileSize(filename)) == -1) {
+		throw(std::runtime_error("Ipc_method:: getFileSize"));
+	}
 	// Start read and write loop
 	while (total < size) {
 		// open and read file 
@@ -35,7 +35,7 @@ void Ipc_pipe::send() {
 			throw(std::runtime_error("Ipc_pipe::send: readFile"));
 		}
 		// write to pipe
-		if ((bytes_write = write(fdp, &buffer[0], bytes_read)) == -1) {
+		if ((bytes_write = write(fdp, buffer.data(), bytes_read)) == -1) {
 	    	throw(std::runtime_error("Ipc_pipe::send: write to pipe"));
 		}
 		// compare read and written bytes 
@@ -48,7 +48,6 @@ void Ipc_pipe::send() {
 
 	in.close();
 	close(fdp);
-	#endif
 	std::cout << "File delivered by pipe successfully, exiting the program.." << std::endl;
 }
 
@@ -61,7 +60,7 @@ void Ipc_pipe::receive() {
 		std::this_thread::sleep_for (std::chrono::seconds(1));
 	}
 	// Start read and write loop
-	while ((bytes = read(fdp, &buffer[0], PIPE_BUF)) != 0) {	
+	while ((bytes = read(fdp, buffer.data(), PIPE_BUF)) != 0) {	
 		if (bytes == -1) {
 			throw(std::runtime_error("Ipc_pipe::receive: read"));
 		}
@@ -72,18 +71,18 @@ void Ipc_pipe::receive() {
 		total += bytes;
 	}
 	
-	fileSize = getFileSize(filename);
+	if ((fileSize = getFileSize(filename)) == -1) {
+		throw(std::runtime_error("Ipc_method:: getFileSize"));
+	}
 	if (total == fileSize) {
 		std::cout << "Write to file from pipe successfully, exiting the program.." << std::endl;
 	} else {
 		throw(std::runtime_error("Ipc_pipe::receive: fileSize and total read difference"));
 	}
-	
+
 	close(fdp);
-	//server remove the FIFO after data is written into file
-	remove(name.c_str());
 }
 
 Ipc_pipe::~Ipc_pipe() {
-	remove(name.c_str());
+	unlink(name.c_str());
 }

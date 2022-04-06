@@ -30,3 +30,10 @@
 *.exe
 *.out
 *.app
+
+# Bazel
+bazel-bin
+bazel-out
+bazel-testlogs
+bazel-Cpp_hands_on_programming
+

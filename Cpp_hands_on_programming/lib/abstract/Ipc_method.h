@@ -11,9 +11,9 @@ class Ipc_method{
 public:
     virtual void send() = 0;
     virtual void receive() = 0;
-    int getFileSize(std::string filename);
-    int readFile(std::string filename, int offset, std::vector<char> &buffer, int size);
-    int writeFile(std::string filename, int total, std::vector<char> &buffer, int size);
+    int getFileSize(const std::string &filename);
+    int readFile(const std::string &filename, int offset, std::vector<char> &buffer, int size);
+    int writeFile(const std::string &filename, int total, const std::vector<char> &buffer, int size);
     virtual ~Ipc_method() = default;
 };
 

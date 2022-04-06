@@ -1,43 +1,40 @@
 #include "Ipc_method.h"
+#include <sys/stat.h>
 #include <iostream>
 
-int Ipc_method::getFileSize(std::string filename) {
-    int size;
-    std::ifstream in(filename, std::ios::binary);
-	if (!in) {
-		perror("getFileSize");
-		exit(EXIT_FAILURE);
-	}
-	in.seekg(0, std::ios::end);
-	size = in.tellg();
-    in.close();
+int Ipc_method::getFileSize(const std::string &filename) {
+    int size(-1);
+	// Use stat to find the size of the file
+	struct stat st;
+	stat(filename.c_str(), &st);
+	size = st.st_size;
     return size;
 }
 
-int Ipc_method::readFile(std::string filename, int offset, std::vector<char> &buffer, int size) {
+int Ipc_method::readFile(const std::string &filename, int offset, std::vector<char> &buffer, int size) {
     std::ifstream in(filename, std::ios::binary);
 	if (!in.is_open()) {
-		perror("ifstream::open\n");
+		std::cerr << "ifstream::open" << std::endl;
 		return -1;
 	}
 	// move file position according to offset
 	in.seekg(offset, std::ios::beg);
 	if (!in) {
-		perror("seekg\n");
+		std::cerr << "ifstream::seekg" << std::endl;
 		return -1;
 	}
 
-	in.read(&buffer[0], size);
+	in.read(buffer.data(), size);
 	// check read status, in.gcount condition set to make last read possible
 	if (!in && in.gcount() == size) {
-		perror("ifstream::read fail\n");
+		std::cerr << "ifstream::read" << std::endl;
 		return -1;
 	}
 	in.close();
 	return in.gcount();
 }
 
-int Ipc_method::writeFile(std::string filename, int total, std::vector<char> &buffer, int size) {
+int Ipc_method::writeFile(const std::string &filename, int total, const std::vector<char> &buffer, int size) {
 	std::ofstream out;
 	if (total == 0) {
     	out.open(filename, std::ios::binary); // clear the file content if it already exists
@@ -45,14 +42,14 @@ int Ipc_method::writeFile(std::string filename, int total, std::vector<char> &bu
 		out.open(filename, std::ios::binary | std::ios::app);
 	}
 	if (!out.is_open()) {
-		perror("ofstream::open\n");
+		std::cerr << "ofstream::open" << std::endl;
 		return -1;
 	}
 
-	out.write(&buffer[0], size);
+	out.write(buffer.data(), size);
 	// check write status
 	if (!out) {
-		perror("ofstream::write fail\n");
+		std::cerr << "ofstream::write" << std::endl;
 		return -1;
 	}
 	out.close();

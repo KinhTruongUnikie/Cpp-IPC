@@ -11,13 +11,13 @@ class Ipc_info {
 private:
     std::string filename;
     std::string argument;
-    methods method;
+    Methods method;
 public:
-    Ipc_info(std::string f = "", std::string arg = "", methods m = NONE) : filename(f), argument(arg), method(m) {}
-    methods getMethod() const;
+    Ipc_info(std::string f = "", std::string arg = "", Methods m = Methods::NONE) : filename(f), argument(arg), method(m) {}
+    Methods getMethod() const;
     std::string getFilename() const;
     std::string getArgument() const;
-    void setMethod(methods m);
+    void setMethod(Methods m);
     void setFilename(std::string f);
     void setArgument(std::string arg);
 };

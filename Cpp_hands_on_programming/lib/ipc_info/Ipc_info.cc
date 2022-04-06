@@ -1,6 +1,6 @@
 #include "Ipc_info.h"
 
-methods Ipc_info::getMethod() const {
+Methods Ipc_info::getMethod() const {
     return method;
 }
 
@@ -12,7 +12,7 @@ std::string Ipc_info::getFilename() const {
     return filename;
 }
 
-void Ipc_info::setMethod(methods m) {
+void Ipc_info::setMethod(Methods m) {
     method = m;
 }
 

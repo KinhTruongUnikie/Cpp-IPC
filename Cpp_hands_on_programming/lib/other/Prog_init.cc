@@ -21,7 +21,7 @@ void Prog_init::printInstruction() {
 }
 
 // check command line options and arguments and return ipc_info for ipc data transfer
-std::shared_ptr<Ipc_info> Prog_init::checkOptions (int argc, char** argv) {
+Ipc_info Prog_init::checkOptions (int argc, char** argv) {
 	struct option longopts[] = {
 		{"help", 0, NULL, 'h'},
 		{"message", 1, NULL, 'm'},
@@ -38,7 +38,7 @@ std::shared_ptr<Ipc_info> Prog_init::checkOptions (int argc, char** argv) {
 	int s_flag(0);
 	int f_flag(0);
 	// ipc methods and file info
-	auto info = std::make_shared<Ipc_info>();
+	Ipc_info info;
 	// reset optind(the next element to be processed in argv), now it is possible to scan argv multiple times during one process
 	optind = 1;
 	while ((option = getopt_long(argc, argv, "hm:p:q:s:f:", longopts, NULL)) != -1) {
@@ -57,25 +57,25 @@ std::shared_ptr<Ipc_info> Prog_init::checkOptions (int argc, char** argv) {
 
 			case 'p': {
 				p_flag++;
-				info->setArgument(optarg); 
+				info.setArgument(optarg); 
 				break;
 			}
 
 			case 'q': {
 				q_flag++;
-				info->setArgument(optarg);
+				info.setArgument(optarg);
 				break;
 			}
 
 			case 's': {
 				s_flag++;
-				info->setArgument(optarg);
+				info.setArgument(optarg);
 				break;
 			}
 
 			case 'f': {
 				f_flag++;
-				info->setFilename(optarg);
+				info.setFilename(optarg);
 				break;
 			}
 
@@ -91,13 +91,13 @@ std::shared_ptr<Ipc_info> Prog_init::checkOptions (int argc, char** argv) {
 		} else {
 			if(p_flag){
 				std::cout << "<pipe is used>" << std::endl;
-				info->setMethod(PIPES);
+				info.setMethod(Methods::PIPES);
 			} else if (q_flag) {
 				std::cout << "<queue is used>" << std::endl;
-				info->setMethod(QUEUE);
+				info.setMethod(Methods::QUEUE);
 			} else {
 				std::cout << "<shm is used>" << std::endl;
-				info->setMethod(SHM);
+				info.setMethod(Methods::SHM);
 			}
 		}
 	} else {
@@ -107,20 +107,20 @@ std::shared_ptr<Ipc_info> Prog_init::checkOptions (int argc, char** argv) {
 }
 
 // run the corresponding ipc method for transfering data
-void Prog_init::run_IPC(std::shared_ptr<Ipc_info> info,  send_or_receive send) {
+void Prog_init::run_IPC(const Ipc_info &info, Send_or_receive side) {
 	std::shared_ptr<Ipc_method> m;
-	if (info->getMethod() == PIPES) {
-		m = std::make_shared<Ipc_pipe>(info->getArgument(), info->getFilename());
-	} else if (info->getMethod() == QUEUE) {
-		m = std::make_shared<Ipc_queue>(info->getArgument(), info->getFilename());
-	} else if (info->getMethod() == SHM) {
-		m = std::make_shared<Ipc_shm>();
+	if (info.getMethod() == Methods::PIPES) {
+		m = std::make_shared<Ipc_pipe>(info.getArgument(), info.getFilename());
+	} else if (info.getMethod() == Methods::QUEUE) {
+		m = std::make_shared<Ipc_queue>(info.getArgument(), info.getFilename());
+	} else if (info.getMethod() == Methods::SHM) {
+		m = std::make_shared<Ipc_shm>(info.getArgument(), info.getFilename());
 	} else {
 		throw(std::runtime_error("Prog_init::run_IPC: ipc method does not exist"));
 	}
 
-	if (send) {
-        m->send();
+	if (side == Send_or_receive::SEND) {
+    	m->send();
 	} else {
 		m->receive();
 	}

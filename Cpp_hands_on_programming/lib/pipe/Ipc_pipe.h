@@ -7,7 +7,7 @@ private:
     std::string name;
     std::string filename;
 public:
-    Ipc_pipe(std::string name0 = "", std::string file0 = "") : name(name0), filename(file0) {}
+    Ipc_pipe(std::string name0, std::string file0) : name(name0), filename(file0) {}
     virtual ~Ipc_pipe();
     void send() override;
     void receive() override;
