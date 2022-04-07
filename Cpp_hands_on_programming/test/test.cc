@@ -10,18 +10,7 @@
 #include <fstream>
 #include <fcntl.h>
 #include "lib/abstract/Ipc_method.h"
-
-
-// std::streambuf * init_captureCout(std::streambuf * sbuf) {
-//     // save cout stream buffer
-//     auto cout_stream_buf = std::cout.rdbuf();
-//     // redirect cout stream buffer to string stream buffer
-//     std::cout.rdbuf(sbuf);
-//     return cout_stream_buf;
-// }
-// void close_captureCout(std::streambuf *cout_stream_buf) {
-//     std::cout.rdbuf(cout_stream_buf);
-// }
+#include <thread>
 
 class Prog_initTest : public::testing::Test {
 protected:
@@ -81,6 +70,12 @@ std::map<std::string, Methods> input_label = {
 // Parameterized test with class fixture
 class Prog_initParamTest : public Prog_initTest, public ::testing::WithParamInterface<std::pair<const std::string, Methods>> {};
 
+INSTANTIATE_TEST_SUITE_P(MethodSelectionVariousInputs, Prog_initParamTest, 
+testing::ValuesIn(input_label), 
+[](const testing::TestParamInfo<Prog_initParamTest::ParamType> &info) {
+    return info.param.first.substr(2);
+});
+
 TEST_P(Prog_initParamTest, CheckOptionsInfoValues) {
     auto expected = Ipc_info("file", "argument", GetParam().second); 
     // Simulate options and argument passed in terminal
@@ -95,49 +90,55 @@ TEST_P(Prog_initParamTest, CheckOptionsInfoValues) {
     EXPECT_THAT(expected.getMethod(), testing::Eq(actual.getMethod()));
 }
 
-INSTANTIATE_TEST_SUITE_P(MethodSelectionVariousInputs, Prog_initParamTest, 
-testing::ValuesIn(input_label), 
-[](const testing::TestParamInfo<Prog_initParamTest::ParamType> &info) {
-    return info.param.first.substr(2);
-});
-
 std::map<std::string, std::shared_ptr<Ipc_method>> input_ipc_pointer = {
-    {"Pipe", std::make_shared<Ipc_pipe>("test", "dummy")},
-    {"Queue", std::make_shared<Ipc_queue>("test", "dummy")},
-    {"SHM", std::make_shared<Ipc_shm>("test", "dummy")}
+    {"pipe", std::make_shared<Ipc_pipe>("gpipe", "test2")}
+    //{"queue", std::make_shared<Ipc_queue>("/gqueue", "test2")}
+    //{"shm", std::make_shared<Ipc_shm>("/gshm", "test2")}
 };
 
-class GetFileSizeParamTest : public::testing::TestWithParam<std::pair<const std::string, std::shared_ptr<Ipc_method>>> {};
+class PolymorphismInput : public::testing::TestWithParam<std::pair<const std::string, std::shared_ptr<Ipc_method>>> {};
 
-
-TEST_P(GetFileSizeParamTest, MultipleIpcPointer) {
-    auto size = GetParam().second->getFileSize("test/test2");
-    EXPECT_THAT(size, testing::Eq(174536)); //174536 is the size of test2 file
-}
-
-INSTANTIATE_TEST_SUITE_P(PolymorphismInput, GetFileSizeParamTest, 
+INSTANTIATE_TEST_SUITE_P(MultipleIPCMethods, PolymorphismInput, 
 testing::ValuesIn(input_ipc_pointer), 
-[](const testing::TestParamInfo<GetFileSizeParamTest::ParamType> &info) {
+[](const testing::TestParamInfo<PolymorphismInput::ParamType> &info) {
     return info.param.first;
 });
 
-TEST(PipeSendTest, SendData) { 
-    auto p = Ipc_pipe("gpipe", "test/test2");
+TEST_P(PolymorphismInput, GetFileSize) {
+    auto size = GetParam().second->getFileSize("test2");
+    EXPECT_THAT(size, testing::Eq(174536)); //174536 is the size of test2 file
+}
+
+TEST_P(PolymorphismInput, SendData) {
+    std::string expected = "File delivered by ";
+    expected += GetParam().first;
+    expected +=  " successfully, exiting the program..\n";
+
     std::stringstream strm;
     auto cout_stream_buf = std::cout.rdbuf(); 
     // redirect cout to string stream strm
     std::cout.rdbuf(strm.rdbuf());
-    p.send();
+    GetParam().second->send();
+
     // reset cout back to original stream buffer
     std::cout.rdbuf(cout_stream_buf);
-    EXPECT_THAT(strm.str(), testing::EndsWith("File delivered by pipe successfully, exiting the program..\n"));
-} 
 
-// TEST_F(Prog_initTest, MethodSelection) {
-//     auto info = std::make_shared<Ipc_info>("random", "random", SHM); 
-//     std::string expected = "Starting shmSend..\n";
-//     testing::internal::CaptureStdout();
-//     init.run_IPC(info, SEND);
-//     std::string actual = testing::internal::GetCapturedStdout();
-//     EXPECT_THAT(expected, testing::StartsWith(actual));
+    EXPECT_THAT(strm.str(), testing::EndsWith(expected));
+}
+
+// TEST(ThreadTest, SendReceiveData) {
+//     auto f = [](std::shared_ptr<Ipc_method> m, Send_or_receive side) {
+//         if (side == Send_or_receive::SEND) {
+//             m->send();
+//             EXPECT_TRUE(true);
+//         } else {
+//             m->receive();
+//             EXPECT_TRUE(true);
+//         }
+//     };
+//     std::thread send(f, std::make_shared<Ipc_pipe>("gpipe", "test2"), Send_or_receive::SEND); 
+//     std::thread receive(f, std::make_shared<Ipc_pipe>("gpipe", "fileGtest"), Send_or_receive::RECEIVE);
+//     send.join();
+//     receive.join();
+//     unlink("fileGtest");
 // }

@@ -8,16 +8,36 @@
 #include <gmock/gmock.h>
 #include <fstream>
 
-TEST(PipeReceiveTest, ReceiveData) { 
-    auto p = Ipc_pipe("gpipe", "fileGtest");
+std::map<std::string, std::shared_ptr<Ipc_method>> input_ipc_pointer = {
+    {"pipe", std::make_shared<Ipc_pipe>("gpipe", "pipeGtest")}
+    //{"queue", std::make_shared<Ipc_queue>("/gqueue", "queueGtest")}
+    //{"shm", std::make_shared<Ipc_shm>("/gshm", "shmGtest")}
+};
+
+class PolymorphismInput : public::testing::TestWithParam<std::pair<const std::string, std::shared_ptr<Ipc_method>>> {};
+
+INSTANTIATE_TEST_SUITE_P(MultipleIPCMethods, PolymorphismInput, 
+testing::ValuesIn(input_ipc_pointer), 
+[](const testing::TestParamInfo<PolymorphismInput::ParamType> &info) {
+    return info.param.first;
+});
+
+TEST_P(PolymorphismInput, ReceiveData) {
+    std::string expected = "Write to file from ";
+    expected += GetParam().first;
+    expected +=  " successfully, exiting the program..\n";
+
     std::stringstream strm;
     auto cout_stream_buf = std::cout.rdbuf(); // save cout stream buffer
     // redirect cout to string stream strm
     std::cout.rdbuf(strm.rdbuf());
-    p.receive();
+    GetParam().second->receive();
+
     // reset cout stream buffer to original
     std::cout.rdbuf(cout_stream_buf);
-    EXPECT_THAT(p.getFileSize("fileGtest"), testing::Eq(174536)); //174536 is the file size of test2 (sent by PipeSendTest)
-    EXPECT_THAT(strm.str(), testing::EndsWith("Write to file from pipe successfully, exiting the program..\n")); 
-    unlink("fileGtest");
-} 
+
+    std::string file = GetParam().first + "Gtest";
+    EXPECT_THAT(GetParam().second->getFileSize(file), testing::Eq(174536)); //174536 is the file size of test2 (sent by PipeSendTest)
+    EXPECT_THAT(strm.str(), testing::EndsWith(expected)); 
+    unlink(file.c_str());
+}

@@ -8,9 +8,6 @@ class Ipc_shm : public Ipc_method {
 private:
     std::string name;
     std::string filename;
-    //std::vector<char> buffer;
-    // boost::interprocess::interprocess_semaphore writer;
-    // boost::interprocess::interprocess_semaphore reader;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
     char buffer[DATA_SIZE];

@@ -12,14 +12,13 @@ void Ipc_pipe::send() {
 	unlink(name.c_str());    
 	int fdp, size, total(0), bytes_read(0), bytes_write(0);
 	std::vector<char> buffer(PIPE_BUF);
-	std::ifstream in;
 
 	// create a name pipe
 	if (mkfifo(name.c_str(), 0666) == -1) {
 		throw(std::runtime_error("Ipc_pipe::send: mkfifo"));
 	}
 
-	// open name pipe
+	// open name pipes
 	fdp = open(name.c_str(), O_WRONLY);
 	if (fdp == -1) {
 		throw(std::runtime_error("Ipc_pipe::send: open pipe"));
@@ -46,7 +45,6 @@ void Ipc_pipe::send() {
 		}
 	}
 
-	in.close();
 	close(fdp);
 	std::cout << "File delivered by pipe successfully, exiting the program.." << std::endl;
 }
