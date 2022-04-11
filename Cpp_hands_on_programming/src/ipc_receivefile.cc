@@ -15,7 +15,6 @@ int main(int argc, char* argv[]) {
 		start.run_IPC(info, Send_or_receive::RECEIVE);
 	}
 	catch(const std::exception &e) {
-		std::cerr << "Error: " << e.what() << std::endl;
 		std::rethrow_exception(std::current_exception());
 	}
 	return 0;

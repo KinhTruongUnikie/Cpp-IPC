@@ -15,7 +15,7 @@ public:
     void send() override;
     void receive() override;
     void attribute_init(int msgSize, int maxMsg);
-    void check_leadingSlash();
+    void check_Slash();
 };
 
 #endif  

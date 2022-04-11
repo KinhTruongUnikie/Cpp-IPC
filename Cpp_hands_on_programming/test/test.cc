@@ -91,8 +91,8 @@ TEST_P(Prog_initParamTest, CheckOptionsInfoValues) {
 }
 
 std::map<std::string, std::shared_ptr<Ipc_method>> input_ipc_pointer = {
-    {"pipe", std::make_shared<Ipc_pipe>("gpipe", "test2")}
-    //{"queue", std::make_shared<Ipc_queue>("/gqueue", "test2")}
+    {"pipe", std::make_shared<Ipc_pipe>("gpipe", "test2")},
+    {"queue", std::make_shared<Ipc_queue>("/gqueue", "test2")}
     //{"shm", std::make_shared<Ipc_shm>("/gshm", "test2")}
 };
 

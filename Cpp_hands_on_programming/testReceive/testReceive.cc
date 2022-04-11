@@ -9,8 +9,8 @@
 #include <fstream>
 
 std::map<std::string, std::shared_ptr<Ipc_method>> input_ipc_pointer = {
-    {"pipe", std::make_shared<Ipc_pipe>("gpipe", "pipeGtest")}
-    //{"queue", std::make_shared<Ipc_queue>("/gqueue", "queueGtest")}
+    {"pipe", std::make_shared<Ipc_pipe>("gpipe", "pipeGtest")},
+    {"queue", std::make_shared<Ipc_queue>("/gqueue", "queueGtest")}
     //{"shm", std::make_shared<Ipc_shm>("/gshm", "shmGtest")}
 };
 

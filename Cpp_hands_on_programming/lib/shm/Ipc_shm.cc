@@ -124,8 +124,8 @@ void Ipc_shm::receive() {
 }
 
 void Ipc_shm::check_leadingSlash() {
-    // if (name[0] != '/') {
-    //     throw(std::runtime_error("Ipc_queue::check_leadingSlash: queue name must starts with leading slash '/'"));
+    // if (name[0] != '/' || name.find('/', 1) != std::string::npos) {
+    //     throw(std::runtime_error("Ipc_shm::check_leadingSlash: shm name must starts with leading slash '/' and contains only one slash"));
     // }
 }
 

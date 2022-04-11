@@ -94,7 +94,7 @@ SEND
 +Ipc_queue(std::string name0, std::string file0) : name(name0), filename(file0) {}
 +~Ipc_queue()
 +attribute_init(int, int)() : void
-+check_leadingSlash() : void
++check_Slash() : void
 +send() : void
 +receive() : void</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>770</x><y>680</y><w>430</w><h>220</h></coordinates><panel_attributes>Ipc_pipe
 --
