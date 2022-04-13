@@ -3,12 +3,12 @@
 #include <iostream>
 
 int Ipc_method::getFileSize(const std::string &filename) {
-    int size(-1);
 	// Use stat to find the size of the file
 	struct stat st;
-	stat(filename.c_str(), &st);
-	size = st.st_size;
-    return size;
+	if (stat(filename.c_str(), &st) == -1) {
+		return -1;
+	}	
+	return st.st_size;
 }
 
 int Ipc_method::readFile(const std::string &filename, int offset, std::vector<char> &buffer, int size) {
@@ -34,7 +34,7 @@ int Ipc_method::readFile(const std::string &filename, int offset, std::vector<ch
 	return in.gcount();
 }
 
-int Ipc_method::writeFile(const std::string &filename, int total, const std::vector<char> &buffer, int size) {
+int Ipc_method::writeFile(const std::string &filename, int total, const std::vector<char> &buffer) {
 	std::ofstream out;
 	if (total == 0) {
     	out.open(filename, std::ios::binary); // clear the file content if it already exists
@@ -46,7 +46,7 @@ int Ipc_method::writeFile(const std::string &filename, int total, const std::vec
 		return -1;
 	}
 
-	out.write(buffer.data(), size);
+	out.write(buffer.data(), buffer.size());
 	// check write status
 	if (!out) {
 		std::cerr << "ofstream::write" << std::endl;

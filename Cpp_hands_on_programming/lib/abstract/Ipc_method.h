@@ -13,7 +13,7 @@ public:
     virtual void receive() = 0;
     int getFileSize(const std::string &filename);
     int readFile(const std::string &filename, int offset, std::vector<char> &buffer, int size);
-    int writeFile(const std::string &filename, int total, const std::vector<char> &buffer, int size);
+    int writeFile(const std::string &filename, int total, const std::vector<char> &buffer);
     virtual ~Ipc_method() = default;
 };
 

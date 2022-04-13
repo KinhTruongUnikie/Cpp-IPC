@@ -9,8 +9,6 @@ void Ipc_queue::send()
 {
     std::cout << "Starting queueSend.." << std::endl;
     
-    check_Slash();
-    
     std::vector<char> buffer(DATA_SIZE);
     int size, total(0), bytes;
 
@@ -57,7 +55,6 @@ void Ipc_queue::send()
 void Ipc_queue::receive()
 {
     std::cout << "Starting queueReceive.." << std::endl;
-    check_Slash();
 
     std::vector<char> buffer;
     int total(0), bytes, size(0);
@@ -76,7 +73,8 @@ void Ipc_queue::receive()
         if ((bytes = mq_receive(msg_queue, buffer.data(), attr.mq_msgsize, 0)) == -1) {
             throw(std::runtime_error("Ipc_queue::receive: mq_receive"));
         }
-        if (writeFile(filename, total, buffer, bytes) == -1) {
+        buffer.resize(bytes);
+        if (writeFile(filename, total, buffer) == -1) {
             throw(std::runtime_error("Ipc_queue::receive: writeFile"));
         }
         total += bytes;
@@ -92,6 +90,14 @@ void Ipc_queue::receive()
     }
 }   
 
+Ipc_queue::Ipc_queue(std::string name0, std::string file0) {
+    if (name0[0] != '/' || name0.find('/', 1) != std::string::npos || name0.length() <= 1) {
+        throw(std::runtime_error("Ipc_queue::Constructor: queue name must starts with leading slash '/' and contains only one slash"));
+    }
+    name = name0;
+    filename = file0;
+}
+
 void Ipc_queue::attribute_init(int msgSize, int maxMsg)
 {
     memset(&attr, 0, sizeof(attr));
@@ -102,10 +108,4 @@ void Ipc_queue::attribute_init(int msgSize, int maxMsg)
 Ipc_queue::~Ipc_queue() {
     mq_close(msg_queue);
     mq_unlink(name.c_str());
-}
-
-void Ipc_queue::check_Slash() {
-    if (name[0] != '/' || name.find('/', 1) != std::string::npos) {
-        throw(std::runtime_error("Ipc_queue::check_Slash: queue name must starts with slash '/' and contains only one slash"));
-    }
 }

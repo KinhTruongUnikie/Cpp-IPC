@@ -31,6 +31,7 @@
 *.out
 *.app
 
-# Bazel
+# Bazel and commit
 bazel*
 .vscode/
+Cpp-IPC/Cpp_hands_on_programming/pipe
