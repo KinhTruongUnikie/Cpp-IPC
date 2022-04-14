@@ -63,7 +63,8 @@ void Ipc_pipe::receive() {
 			throw(std::runtime_error("Ipc_pipe::receive: read"));
 		}
 		// open and write to file
-		if (writeFile(filename, total, buffer, bytes) == -1) {
+		buffer.resize(bytes);
+		if (writeFile(filename, total, buffer) == -1) {
 			throw(std::runtime_error("Ipc_pipe::receive: writeFile"));
 		}
 		total += bytes;
