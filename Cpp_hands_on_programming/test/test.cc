@@ -12,8 +12,7 @@
 #include "lib/abstract/Ipc_method.h"
 #include <thread>
 
-const int bigSize = 1000*1000*1000;
-
+const int bigSize = 1000'000'000;
 class Prog_initTest : public::testing::Test {
 protected:
     Prog_init init;
