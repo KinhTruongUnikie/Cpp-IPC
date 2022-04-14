@@ -9,8 +9,10 @@
 #include <fstream>
 
 std::map<std::string, std::shared_ptr<Ipc_method>> input_ipc_pointer = {
-    {"pipe", std::make_shared<Ipc_pipe>("gpipe", "pipeGtest")}
-    //{"queue", std::make_shared<Ipc_queue>("/gqueue", "queueGtest")}
+    {"pipe", std::make_shared<Ipc_pipe>("gpipe", "pipeGtest")},
+    {"queue", std::make_shared<Ipc_queue>("/gqueue", "queueGtest")},
+    {"pipeBigfile", std::make_shared<Ipc_pipe>("gpipe2", "pipeBigfileGtest")},
+    {"queueBigfile", std::make_shared<Ipc_queue>("/gqueue2", "queueBigfileGtest")}
     //{"shm", std::make_shared<Ipc_shm>("/gshm", "shmGtest")}
 };
 
@@ -23,8 +25,13 @@ testing::ValuesIn(input_ipc_pointer),
 });
 
 TEST_P(PolymorphismInput, ReceiveData) {
+    const int bigSize = 1000*1000*1000;
+    size_t pos;
     std::string expected = "Write to file from ";
     expected += GetParam().first;
+    if ((pos = expected.find("Bigfile")) != std::string::npos) {
+        expected = expected.substr(0, pos); 
+    } 
     expected +=  " successfully, exiting the program..\n";
 
     std::stringstream strm;
@@ -37,7 +44,11 @@ TEST_P(PolymorphismInput, ReceiveData) {
     std::cout.rdbuf(cout_stream_buf);
 
     std::string file = GetParam().first + "Gtest";
-    EXPECT_THAT(GetParam().second->getFileSize(file), testing::Eq(174536)); //174536 is the file size of test2 (sent by PipeSendTest)
+    if (GetParam().first.find("Bigfile") != std::string::npos) {
+        EXPECT_THAT(GetParam().second->getFileSize(file), testing::Eq(bigSize)); //// size of bigfile file (sent by PipeSendTest)
+    } else {
+        EXPECT_THAT(GetParam().second->getFileSize(file), testing::Eq(174536)); //174536 is the file size of test2 (sent by PipeSendTest)
+    }
     EXPECT_THAT(strm.str(), testing::EndsWith(expected)); 
     unlink(file.c_str());
 }

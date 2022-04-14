@@ -12,6 +12,7 @@
 #include "lib/abstract/Ipc_method.h"
 #include <thread>
 
+const int bigSize = 1000'000'000;
 class Prog_initTest : public::testing::Test {
 protected:
     Prog_init init;
@@ -91,12 +92,22 @@ TEST_P(Prog_initParamTest, CheckOptionsInfoValues) {
 }
 
 std::map<std::string, std::shared_ptr<Ipc_method>> input_ipc_pointer = {
-    {"pipe", std::make_shared<Ipc_pipe>("gpipe", "test2")}
-    //{"queue", std::make_shared<Ipc_queue>("/gqueue", "test2")}
+    {"pipe", std::make_shared<Ipc_pipe>("gpipe", "test2")},
+    {"queue", std::make_shared<Ipc_queue>("/gqueue", "test2")},
+    {"pipeBigfile", std::make_shared<Ipc_pipe>("gpipe2", "bigfile")},
+    {"queueBigfile", std::make_shared<Ipc_queue>("/gqueue2", "bigfile")}
     //{"shm", std::make_shared<Ipc_shm>("/gshm", "test2")}
 };
 
-class PolymorphismInput : public::testing::TestWithParam<std::pair<const std::string, std::shared_ptr<Ipc_method>>> {};
+class PolymorphismInput : public::testing::TestWithParam<std::pair<const std::string, std::shared_ptr<Ipc_method>>> {
+protected:
+    static void SetUpTestSuite() {
+        std::ofstream out("bigfile");
+        out.seekp(bigSize - 3);
+        out << "end";
+        out.close();
+    }
+};
 
 INSTANTIATE_TEST_SUITE_P(MultipleIPCMethods, PolymorphismInput, 
 testing::ValuesIn(input_ipc_pointer), 
@@ -105,13 +116,28 @@ testing::ValuesIn(input_ipc_pointer),
 });
 
 TEST_P(PolymorphismInput, GetFileSize) {
-    auto size = GetParam().second->getFileSize("test2");
-    EXPECT_THAT(size, testing::Eq(174536)); //174536 is the size of test2 file
+    int size;
+    if (GetParam().first.find("Bigfile") != std::string::npos) {
+        size = GetParam().second->getFileSize("bigfile");
+        EXPECT_THAT(size, testing::Eq(bigSize)); // size of bigfile file
+    } else {
+        size = GetParam().second->getFileSize("test2");
+        EXPECT_THAT(size, testing::Eq(174536)); //174536 is the size of test2 file
+    }
+    //unexist file test
+    std::string emptyFile = "empty";
+    unlink(emptyFile.c_str());
+    size = GetParam().second->getFileSize(emptyFile);
+    EXPECT_THAT(size, testing::Eq(-1));
 }
 
 TEST_P(PolymorphismInput, SendData) {
+    size_t pos;
     std::string expected = "File delivered by ";
     expected += GetParam().first;
+    if ((pos = expected.find("Bigfile")) != std::string::npos) {
+        expected = expected.substr(0, pos); 
+    } 
     expected +=  " successfully, exiting the program..\n";
 
     std::stringstream strm;

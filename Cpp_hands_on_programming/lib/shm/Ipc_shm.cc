@@ -11,8 +11,6 @@ void Ipc_shm::send() {
 
     // int fd, total(0), size, bytes_read(0);
 	// std::vector<char> v(DATA_SIZE);
-
-    // auto shm_ptr = this;
     
  	// if ((size = getFileSize(filename)) == -1) {
 	// 	throw(std::runtime_error("Ipc_method:: getFileSize"));
@@ -27,7 +25,7 @@ void Ipc_shm::send() {
 	// 	throw(std::runtime_error("Ipc_shm::send: ftruncate"));	
 	// }
 	// // get a pointer to shared memory region
-	// shm_ptr = (Ipc_shm *)mmap(NULL, sizeof(Ipc_shm), PROT_WRITE, MAP_SHARED, fd, 0);
+	// auto shm_ptr = (Ipc_shm *)mmap(NULL, sizeof(Ipc_shm), PROT_WRITE, MAP_SHARED, fd, 0);
 	// if (shm_ptr == MAP_FAILED) {
 	// 	throw(std::runtime_error("Ipc_shm::send: mmap"));
 	// }
@@ -79,7 +77,7 @@ void Ipc_shm::send() {
 
 void Ipc_shm::receive() {
     std::cout << "Starting shmReceive.." << std::endl;
-    //check_leadingSlash();
+    // check_leadingSlash();
 
     // auto shm_ptr = get_shared_memory_pointer(name);
 	// std::cout << "Found shm!"<< std::endl;
@@ -100,8 +98,8 @@ void Ipc_shm::receive() {
 	// 	}
 	// 	// write into file
 	// 	copy(shm_ptr->buffer, shm_ptr->buffer + shm_ptr->data_size, v.begin());
-
-	// 	if (writeFile(filename, total, v, shm_ptr->data_size) == -1) {
+	// 	v.resize(shm_ptr->data_size);
+	// 	if (writeFile(filename, total, v) == -1) {
 	// 		throw("Ipc_shm::receive: writeFile");
 	// 	}
     //     total += shm_ptr->data_size;
@@ -124,13 +122,13 @@ void Ipc_shm::receive() {
 }
 
 void Ipc_shm::check_leadingSlash() {
-    // if (name[0] != '/') {
-    //     throw(std::runtime_error("Ipc_queue::check_leadingSlash: queue name must starts with leading slash '/'"));
+    // if (name[0] != '/' || name.find('/', 1) != std::string::npos) {
+    //     throw(std::runtime_error("Ipc_shm::check_leadingSlash: shm name must starts with leading slash '/' and contains only one slash"));
     // }
 }
 
 Ipc_shm::~Ipc_shm() {
-    //shm_unlink(name.c_str());
+    // shm_unlink(name.c_str());
 }
 
 Ipc_shm * Ipc_shm::get_shared_memory_pointer(std::string name) {

@@ -10,12 +10,11 @@ private:
     mqd_t msg_queue;
     mq_attr attr; //struct mq_attr
 public:
-    Ipc_queue(std::string name0, std::string file0) : name(name0), filename(file0) {}
+    Ipc_queue(std::string name0, std::string file0);
     virtual ~Ipc_queue();
     void send() override;
     void receive() override;
     void attribute_init(int msgSize, int maxMsg);
-    void check_leadingSlash();
 };
 
 #endif  
