@@ -10,10 +10,11 @@
 
 std::map<std::string, std::shared_ptr<Ipc_method>> input_ipc_pointer = {
     {"pipe", std::make_shared<Ipc_pipe>("gpipe", "pipeGtest")},
-    {"queue", std::make_shared<Ipc_queue>("/gqueue", "queueGtest")},
     {"pipeBigfile", std::make_shared<Ipc_pipe>("gpipe2", "pipeBigfileGtest")},
-    {"queueBigfile", std::make_shared<Ipc_queue>("/gqueue2", "queueBigfileGtest")}
-    //{"shm", std::make_shared<Ipc_shm>("/gshm", "shmGtest")}
+    {"queue", std::make_shared<Ipc_queue>("/gqueue", "queueGtest")},
+    {"queueBigfile", std::make_shared<Ipc_queue>("/gqueue2", "queueBigfileGtest")},
+    {"shm", std::make_shared<Ipc_shm>("/gshm", "shmGtest")},
+    {"shmBigfile", std::make_shared<Ipc_shm>("/gshm2", "shmBigfileGtest")}
 };
 
 class PolymorphismInput : public::testing::TestWithParam<std::pair<const std::string, std::shared_ptr<Ipc_method>>> {};

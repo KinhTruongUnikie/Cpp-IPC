@@ -92,7 +92,7 @@ void Ipc_queue::receive()
 
 Ipc_queue::Ipc_queue(std::string name0, std::string file0) {
     if (name0[0] != '/' || name0.find('/', 1) != std::string::npos || name0.length() <= 1) {
-        throw(std::runtime_error("Ipc_queue::Constructor: queue name must starts with leading slash '/' and contains only one slash"));
+        throw(std::runtime_error("Ipc_queue::Constructor: queue name must starts with leading slash '/' and followed by non-slash characters"));
     }
     name = name0;
     filename = file0;

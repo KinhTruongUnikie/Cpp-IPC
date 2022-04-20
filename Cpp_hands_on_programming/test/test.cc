@@ -93,10 +93,11 @@ TEST_P(Prog_initParamTest, CheckOptionsInfoValues) {
 
 std::map<std::string, std::shared_ptr<Ipc_method>> input_ipc_pointer = {
     {"pipe", std::make_shared<Ipc_pipe>("gpipe", "test2")},
-    {"queue", std::make_shared<Ipc_queue>("/gqueue", "test2")},
     {"pipeBigfile", std::make_shared<Ipc_pipe>("gpipe2", "bigfile")},
-    {"queueBigfile", std::make_shared<Ipc_queue>("/gqueue2", "bigfile")}
-    //{"shm", std::make_shared<Ipc_shm>("/gshm", "test2")}
+    {"queue", std::make_shared<Ipc_queue>("/gqueue", "test2")},
+    {"queueBigfile", std::make_shared<Ipc_queue>("/gqueue2", "bigfile")},
+    {"shm", std::make_shared<Ipc_shm>("/gshm", "test2")},
+    {"shmBigfile", std::make_shared<Ipc_shm>("/gshm2", "bigfile")}
 };
 
 class PolymorphismInput : public::testing::TestWithParam<std::pair<const std::string, std::shared_ptr<Ipc_method>>> {
@@ -106,6 +107,10 @@ protected:
         out.seekp(bigSize - 3);
         out << "end";
         out.close();
+    }
+
+    static void TearDownTestSuite() {
+        unlink("bigfile");
     }
 };
 
