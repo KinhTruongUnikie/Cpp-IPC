@@ -34,9 +34,16 @@ void Ipc_shm::send() {
 	shm_ptr->mutex_init();
 	shm_ptr->condvar_init();
 	// initialized shared memory object member values
+	shm_ptr->mutex_lock();
 	shm_ptr->sent = false;
 	shm_ptr->end = false;
 	shm_ptr->init = true;
+	shm_ptr->mutex_unlock();
+	
+	// wait for receiver to connect the shared memory region
+	while (shm_ptr->init) {  
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
 
     while (total < size) {
         // shm_ptr->m.lock();
@@ -147,6 +154,12 @@ Ipc_shm * Ipc_shm::get_shared_memory_pointer(std::string name) {
 	while (!ptr->init) {
 		std::this_thread::sleep_for (std::chrono::seconds(1));
 	}
+
+	ptr->mutex_lock();
+	// notify sender the shm connection now is complete
+	ptr->init = false;
+	ptr->mutex_unlock();
+
 	return ptr;
 }
 
