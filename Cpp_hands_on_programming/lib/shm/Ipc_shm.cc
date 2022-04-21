@@ -8,7 +8,8 @@
 void Ipc_shm::send() {
     std::cout << "Starting shmSend.." << std::endl;
 
-    int fd, total(0), size, bytes_read(0);
+    int fd, bytes_read(0);
+	off_t total(0), size(0);
 	std::vector<char> v(DATA_SIZE);
     
  	if ((size = getFileSize(filename)) == -1) {
@@ -82,7 +83,7 @@ void Ipc_shm::receive() {
 
     auto shm_ptr = get_shared_memory_pointer(name);
 	std::cout << "Found shm!"<< std::endl;
-    int total(0), size(0);
+    off_t total(0), size(0);
     bool done(false);
 	std::vector<char> v(DATA_SIZE);
 	while (!done) {

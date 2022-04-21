@@ -121,7 +121,7 @@ testing::ValuesIn(input_ipc_pointer),
 });
 
 TEST_P(PolymorphismInput, GetFileSize) {
-    int size;
+    off_t size;
     if (GetParam().first.find("Bigfile") != std::string::npos) {
         size = GetParam().second->getFileSize("bigfile");
         EXPECT_THAT(size, testing::Eq(bigSize)); // size of bigfile file
