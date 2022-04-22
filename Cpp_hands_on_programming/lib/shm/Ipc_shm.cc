@@ -43,7 +43,7 @@ void Ipc_shm::send() {
 	
 	// wait for receiver to connect the shared memory region
 	while (shm_ptr->init) {  
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 
     while (total < size) {
