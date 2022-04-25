@@ -10,7 +10,8 @@ void Ipc_pipe::send() {
     std::cout << "Starting pipeSend.." << std::endl;
 	// remove potentially existing FIFO
 	unlink(name.c_str());    
-	int fdp, size, total(0), bytes_read(0), bytes_write(0);
+	int fdp, bytes_read(0), bytes_write(0);
+	off_t size, total(0);
 	std::vector<char> buffer(PIPE_BUF);
 
 	// create a name pipe
@@ -51,7 +52,8 @@ void Ipc_pipe::send() {
 
 void Ipc_pipe::receive() {
     std::cout << "Starting pipeReceive.." << std::endl;
-	int fdp, bytes, fileSize(0), total(0);
+	int fdp, bytes;
+	off_t fileSize(0), total(0);
 	std::vector<char> buffer(PIPE_BUF);
 	// open pipe 
 	while ((fdp = open(name.c_str(), O_RDONLY)) == -1) {

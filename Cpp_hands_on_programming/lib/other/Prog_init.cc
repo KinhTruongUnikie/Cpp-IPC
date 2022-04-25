@@ -4,6 +4,7 @@
 #include "lib/pipe/Ipc_pipe.h"
 #include "lib/queue/Ipc_queue.h"
 #include "lib/shm/Ipc_shm.h"
+#include <sys/stat.h>
 
 
 
@@ -21,7 +22,7 @@ void Prog_init::printInstruction() {
 }
 
 // check command line options and arguments and return ipc_info for ipc data transfer
-Ipc_info Prog_init::checkOptions (int argc, char** argv) {
+Ipc_info & Prog_init::checkOptions (int argc, char** argv) {
 	struct option longopts[] = {
 		{"help", 0, NULL, 'h'},
 		{"message", 1, NULL, 'm'},
@@ -38,7 +39,6 @@ Ipc_info Prog_init::checkOptions (int argc, char** argv) {
 	int s_flag(0);
 	int f_flag(0);
 	// ipc methods and file info
-	Ipc_info info;
 	// reset optind(the next element to be processed in argv), now it is possible to scan argv multiple times during one process
 	optind = 1;
 	while ((option = getopt_long(argc, argv, "hm:p:q:s:f:", longopts, NULL)) != -1) {
@@ -107,7 +107,7 @@ Ipc_info Prog_init::checkOptions (int argc, char** argv) {
 }
 
 // run the corresponding ipc method for transfering data
-void Prog_init::run_IPC(const Ipc_info &info, Send_or_receive side) {
+void Prog_init::run_IPC(Send_or_receive side) {
 	std::shared_ptr<Ipc_method> m;
 	if (info.getMethod() == Methods::PIPES) {
 		m = std::make_shared<Ipc_pipe>(info.getArgument(), info.getFilename());
@@ -125,3 +125,34 @@ void Prog_init::run_IPC(const Ipc_info &info, Send_or_receive side) {
 		m->receive();
 	}
 }
+
+bool Prog_init::fileExist() {
+	struct stat st;
+	bool exist = (stat(info.getFilename().c_str(), &st) == 0);
+	if (exist) {
+		if ((st.st_mode & S_IFMT) == S_IFDIR) {
+			throw(std::runtime_error("File name is an already exist directory name!"));
+		}
+		return true;
+	} else {
+		return false;
+	}
+}
+
+ bool Prog_init::overwritable() {
+	 char input(' ');
+	 std::cout << "This program will overwrite the content of " << info.getFilename() << ". "
+	 "Do you wanna continue(Y/n)?";
+	 std::cin >> input;
+	if (!std::cin) {
+		throw(std::runtime_error("cin fail"));
+	} 
+	switch(input) {
+		case 'y': case 'Y':
+			return true;
+			break;
+		default:
+			return false;
+			break;
+	}
+ }

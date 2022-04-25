@@ -93,10 +93,11 @@ TEST_P(Prog_initParamTest, CheckOptionsInfoValues) {
 
 std::map<std::string, std::shared_ptr<Ipc_method>> input_ipc_pointer = {
     {"pipe", std::make_shared<Ipc_pipe>("gpipe", "test2")},
-    {"queue", std::make_shared<Ipc_queue>("/gqueue", "test2")},
     {"pipeBigfile", std::make_shared<Ipc_pipe>("gpipe2", "bigfile")},
-    {"queueBigfile", std::make_shared<Ipc_queue>("/gqueue2", "bigfile")}
-    //{"shm", std::make_shared<Ipc_shm>("/gshm", "test2")}
+    {"queue", std::make_shared<Ipc_queue>("/gqueue", "test2")},
+    {"queueBigfile", std::make_shared<Ipc_queue>("/gqueue2", "bigfile")},
+    {"shm", std::make_shared<Ipc_shm>("/gshm", "test2")},
+    {"shmBigfile", std::make_shared<Ipc_shm>("/gshm2", "bigfile")}
 };
 
 class PolymorphismInput : public::testing::TestWithParam<std::pair<const std::string, std::shared_ptr<Ipc_method>>> {
@@ -107,6 +108,10 @@ protected:
         out << "end";
         out.close();
     }
+
+    static void TearDownTestSuite() {
+        unlink("bigfile");
+    }
 };
 
 INSTANTIATE_TEST_SUITE_P(MultipleIPCMethods, PolymorphismInput, 
@@ -116,7 +121,7 @@ testing::ValuesIn(input_ipc_pointer),
 });
 
 TEST_P(PolymorphismInput, GetFileSize) {
-    int size;
+    off_t size;
     if (GetParam().first.find("Bigfile") != std::string::npos) {
         size = GetParam().second->getFileSize("bigfile");
         EXPECT_THAT(size, testing::Eq(bigSize)); // size of bigfile file
