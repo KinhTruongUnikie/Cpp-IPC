@@ -16,7 +16,8 @@ void Prog_init::printInstruction() {
 			     "--queue(-q): uses queue as IPC method(argument required)\n"
 			     "--pipe(-p): uses name pipe(FIFO) as IPC method(argument required)\n"
 			     "--shm(-s): uses shared memory buffer as IPC method(argument required)\n"
-			     "--file(-f): file used for read/write data(argument required)\n"
+			     "--file(-f): file used for read/write data(argument required)\n\n"
+				 "**NOTE**: The name of the file entered from the receiver side must be different with the folder name in workspace root\n"
 			  << std::endl;
 }
 
