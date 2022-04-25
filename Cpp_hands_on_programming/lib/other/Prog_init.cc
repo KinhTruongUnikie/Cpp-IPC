@@ -140,10 +140,10 @@ bool Prog_init::fileExist() {
 }
 
  bool Prog_init::overwritable() {
-	 char input(' ');
-	 std::cout << "This program will overwrite the content of " << info.getFilename() << ". "
-	 "Do you wanna continue(Y/n)?";
-	 std::cin >> input;
+	char input(' ');
+	std::cout << "This program will overwrite the content of " << info.getFilename() << ". "
+	"Do you wanna continue(Y/n)?";
+	std::cin >> input;
 	if (!std::cin) {
 		throw(std::runtime_error("cin fail"));
 	} 
