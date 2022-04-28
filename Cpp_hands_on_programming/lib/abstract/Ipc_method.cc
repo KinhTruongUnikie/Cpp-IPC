@@ -2,7 +2,7 @@
 #include <sys/stat.h>
 #include <iostream>
 
-off_t Ipc_method::getFileSize(const std::string &filename) {
+int Ipc_method::getFileSize(const std::string &filename) {
 	// Use stat to find the size of the file
 	struct stat st;
 	if (stat(filename.c_str(), &st) == -1) {

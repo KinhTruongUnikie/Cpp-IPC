@@ -4,6 +4,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <algorithm>
+#include <cstring>
 
 void Ipc_shm::send() {
     std::cout << "Starting shmSend.." << std::endl;
@@ -40,15 +41,13 @@ void Ipc_shm::send() {
 	shm_ptr->end = false;
 	shm_ptr->init = true;
 	shm_ptr->mutex_unlock();
-	
 	// wait for receiver to connect the shared memory region
-	while (shm_ptr->init) {  
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+	t.startTimer();
+	while (shm_ptr->init) {
+		t.checkTimer("Shm receive fails to connect shm region", "Connecting to shmReceive..");
 	}
-
     while (total < size) {
-        // shm_ptr->m.lock();
-		shm_ptr->mutex_lock();
+		shm_ptr->mutex_lock();	
 		// check sent status and blocked if data still has not been retrieved 
 		while (shm_ptr->sent) {
 			shm_ptr->condvar_wait();
@@ -67,10 +66,9 @@ void Ipc_shm::send() {
 		shm_ptr->data_size = bytes_read; 
 
 		shm_ptr->mutex_unlock();
-		//wake up process which is currently condvar blocked
 		shm_ptr->condvar_broadcast();
 	}
-
+	
 	if (total == size) {
 		std::cout << "File delivered by shm successfully, exiting the program.."  << std::endl;
 	} else {
@@ -81,7 +79,7 @@ void Ipc_shm::send() {
 void Ipc_shm::receive() {
     std::cout << "Starting shmReceive.." << std::endl;
 
-    auto shm_ptr = get_shared_memory_pointer(name);
+	auto shm_ptr = get_shared_memory_pointer(name);
 	std::cout << "Found shm!"<< std::endl;
     off_t total(0), size(0);
     bool done(false);
@@ -89,7 +87,6 @@ void Ipc_shm::receive() {
 	while (!done) {
 		// enter critical section, lock the mutex
 		shm_ptr->mutex_lock();
-
 		// check sent status and blocked if shmSend still has not sent new data at this point
 		while (!shm_ptr->sent) {
 			shm_ptr->condvar_wait();
@@ -101,15 +98,14 @@ void Ipc_shm::receive() {
 		// write into file
 		copy(shm_ptr->buffer, shm_ptr->buffer + shm_ptr->data_size, v.begin());
 		v.resize(shm_ptr->data_size);
+		
 		if (writeFile(filename, total, v) == -1) {
 			throw("Ipc_shm::receive: writeFile");
 		}
         total += shm_ptr->data_size;
 		// reset sent status
 		shm_ptr->sent = false;
-
 		shm_ptr->mutex_unlock();
-		//wake up process which is currently condvar blocked
 		shm_ptr->condvar_broadcast();
 	}
 	// get size of newly written file name
@@ -127,40 +123,28 @@ Ipc_shm::~Ipc_shm() {
     shm_unlink(name.c_str());
 }
 
-Ipc_shm::Ipc_shm(std::string name0, std::string file0) {
-    if (name0[0] != '/' || name0.find('/', 1) != std::string::npos || name0.length() <= 1) {
-        throw(std::runtime_error("Ipc_shm::Constructor: shm name must starts with leading slash '/' and followed by non-slash characters"));
-    }
-    name = name0;
-    filename = file0;
-}
-
 Ipc_shm * Ipc_shm::get_shared_memory_pointer(std::string name) {
-	Ipc_shm * ptr = NULL;
+	Ipc_shm * ptr = nullptr;
 	int fd;
 
-	std::cout << "Getting access to shared memory region..(Program would stuck in a loop for non-exist shm name" << std::endl;
-
+	t.startTimer();
 	while ((fd = shm_open(name.c_str(), O_RDWR, 0)) == -1) {
 		/* wait one second then try again */
-		std::this_thread::sleep_for (std::chrono::seconds(1));
+		t.checkTimer("Shm region does not exist", "Connecting to shmSend..");
 	}
 
-	while ((ptr = (Ipc_shm *)mmap(0, sizeof(Ipc_shm), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) == MAP_FAILED) {
-		std::this_thread::sleep_for (std::chrono::seconds(1));
+	while((ptr = (Ipc_shm *)mmap(0, sizeof(Ipc_shm), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) == MAP_FAILED) {
+		t.checkTimer("Shm region does not exist", "Connecting to shmSend..");
 	}
 	/* no longer need fd */
 	close(fd);
 
 	while (!ptr->init) {
-		std::this_thread::sleep_for (std::chrono::seconds(1));
+		t.checkTimer("Shm region does not exist", "Connecting to shmSend..");
 	}
-
 	ptr->mutex_lock();
-	// notify sender the shm connection now is complete
 	ptr->init = false;
 	ptr->mutex_unlock();
-
 	return ptr;
 }
 
@@ -169,19 +153,19 @@ void Ipc_shm::mutex_init() {
 	pthread_mutexattr_init(&attr);
 	pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
 	if (pthread_mutex_init(&mutex, &attr) != 0) {
-		throw(std::runtime_error("pthread_mutex_init"));
+		throw(std::runtime_error("pthread_mutex_init. Errno: " + std::string(strerror(errno))));
 	}
 }
 
 void Ipc_shm::mutex_lock() {
-	if (pthread_mutex_lock(&mutex) != 0) {
-		throw(std::runtime_error("pthread_mutex_lock"));
+	if ((returnErrno = pthread_mutex_timedlock(&mutex, &t.useTimespec())) != 0) {
+		throw(std::runtime_error("pthread_mutex_timedlock. Errno: " + std::string(strerror(returnErrno))));
 	}
 }
 
 void Ipc_shm::mutex_unlock() {
 	if (pthread_mutex_unlock(&mutex) != 0) {
-		throw(std::runtime_error("pthread_mutex_unlock"));
+		throw(std::runtime_error("pthread_mutex_unlock. Errno: " + std::string(strerror(errno))));
 	}
 }
 
@@ -190,13 +174,13 @@ void Ipc_shm::condvar_init() {
 	pthread_condattr_init(&attr);
 	pthread_condattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
 	if (pthread_cond_init(&cond, &attr) != 0) {
-		throw(std::runtime_error("pthread_cond_init"));
+		throw(std::runtime_error("pthread_cond_init. Errno: " + std::string(strerror(errno))));
 	}
 }
 
 void Ipc_shm::condvar_wait() {
-	if (pthread_cond_wait(&cond, &mutex) != 0) {
-		throw(std::runtime_error("pthread_cond_wait"));	
+	if ((returnErrno = pthread_cond_timedwait(&cond, &mutex, &t.useTimespec())) != 0) {
+		throw(std::runtime_error("pthread_cond_timedwait. Errno: " + std::string(strerror(returnErrno))));
 	}
 }
 
@@ -204,4 +188,13 @@ void Ipc_shm::condvar_broadcast() {
 	if (pthread_cond_broadcast(&cond) != 0) {
 		throw(std::runtime_error("pthread_cond_broadcast"));	
 	}
+}
+
+Ipc_shm::Ipc_shm(std::string name0, std::string file0, int time) {
+    if (name0[0] != '/' || name0.find('/', 1) != std::string::npos || name0.length() <= 1) {
+        throw(std::runtime_error("Ipc_shm::Constructor: shm name must start with leading slash '/' followed by non-slash characters"));
+    }
+    name = name0;
+    filename = file0;
+	t = Timer(time);
 }

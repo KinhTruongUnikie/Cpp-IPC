@@ -25,7 +25,6 @@ void Prog_init::printInstruction() {
 Ipc_info & Prog_init::checkOptions (int argc, char** argv) {
 	struct option longopts[] = {
 		{"help", 0, NULL, 'h'},
-		{"message", 1, NULL, 'm'},
 		{"pipe", 1, NULL, 'p'},
 		{"queue", 1, NULL, 'q'},
 		{"shm", 1, NULL, 's'},
@@ -45,7 +44,6 @@ Ipc_info & Prog_init::checkOptions (int argc, char** argv) {
 		switch(option) {
 			case 'h': {
 				std::cout << "<HELP>\n"
-						     "--message: client-server model, carries priority, QNX native API(argument <serverName>)\n"
 						     "--pipe: POSIX, portable, does not carry priority(argument <pipeName>)\n"
 						     "--queue: POSIX, basically pipe with extra feature(argument <queueName>)\n"
 						     "--shm: use shared memory region for message passing, required synchronization measure, e.g mutex, condvar(argument <shmName>)\n"
@@ -80,8 +78,7 @@ Ipc_info & Prog_init::checkOptions (int argc, char** argv) {
 			}
 
 			default:
-				std::cout << "Invalid options!" << std::endl;
-				break;
+				throw(std::runtime_error("Invalid option!"));
 		}
 
 	}
@@ -90,13 +87,10 @@ Ipc_info & Prog_init::checkOptions (int argc, char** argv) {
 			throw(std::runtime_error("Prog_init::checkoptions: One IPC method is required!(no duplication) e.g ./temp --pipe <pipeName> --file <fileName>"));
 		} else {
 			if(p_flag){
-				std::cout << "<pipe is used>" << std::endl;
 				info.setMethod(Methods::PIPES);
 			} else if (q_flag) {
-				std::cout << "<queue is used>" << std::endl;
 				info.setMethod(Methods::QUEUE);
 			} else {
-				std::cout << "<shm is used>" << std::endl;
 				info.setMethod(Methods::SHM);
 			}
 		}
@@ -120,8 +114,16 @@ void Prog_init::run_IPC(Send_or_receive side) {
 	}
 
 	if (side == Send_or_receive::SEND) {
+		if (!fileExist()) {
+			throw(std::runtime_error("Send file does not exist!"));
+		}
     	m->send();
 	} else {
+		if (fileExist()) {
+			if (!overwritable()) {	
+				throw(std::runtime_error("Received file already exist!"));
+			}
+		}
 		m->receive();
 	}
 }
@@ -141,8 +143,8 @@ bool Prog_init::fileExist() {
 
  bool Prog_init::overwritable() {
 	char input(' ');
-	std::cout << "This program will overwrite the content of " << info.getFilename() << ". "
-	"Do you wanna continue(Y/n)?";
+	std::cout << "This program will overwrite the content of " << info.getFilename() << ". \n"
+	"Do you wanna continue(Y/n)?";	
 	std::cin >> input;
 	if (!std::cin) {
 		throw(std::runtime_error("cin fail"));

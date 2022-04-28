@@ -5,6 +5,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <limits.h>
+#include <errno.h>
+#include <string.h>
+#include <algorithm>
+#include <signal.h>
 
 void Ipc_pipe::send() {
     std::cout << "Starting pipeSend.." << std::endl;
@@ -20,10 +24,21 @@ void Ipc_pipe::send() {
 	}
 
 	// open name pipes
-	fdp = open(name.c_str(), O_WRONLY);
-	if (fdp == -1) {
-		throw(std::runtime_error("Ipc_pipe::send: open pipe"));
-	}
+	t.startTimer();
+	do {
+		errno = 0;
+		fdp = open(name.c_str(), O_WRONLY | O_NONBLOCK);
+		if (fdp == -1) {
+			if (errno == ENXIO) {
+				//runTimer();
+				t.checkTimer("Cannot connect to pipeReceive. Errno: " + std::string(strerror(errno)), "Connecting pipeReceive..");
+			} else {
+				throw(std::runtime_error("Ipc_pipe::send: open pipe. Errno: " + std::string(strerror(errno))));	
+			}
+		}
+	}while (errno == ENXIO);
+
+	std::cout << "Connected!" << std::endl;	
 
 	if ((size = getFileSize(filename)) == -1) {
 		throw(std::runtime_error("Ipc_method:: getFileSize"));
@@ -35,9 +50,20 @@ void Ipc_pipe::send() {
 			throw(std::runtime_error("Ipc_pipe::send: readFile"));
 		}
 		// write to pipe
-		if ((bytes_write = write(fdp, buffer.data(), bytes_read)) == -1) {
-	    	throw(std::runtime_error("Ipc_pipe::send: write to pipe"));
-		}
+		t.startTimer();    // reset attempts
+		do {
+
+			errno = 0;
+			signal(SIGPIPE, SIG_IGN); // ignore SIGPIPE in case read end is closed 
+			bytes_write = write(fdp, buffer.data(), bytes_read);
+			if (bytes_write == -1) {
+				if (errno == EAGAIN) {
+					t.checkTimer("Pipe is full for too long. Errno: " + std::string(strerror(errno)));
+				} else {
+					throw(std::runtime_error("Ipc_pipe::send: write. Errno: " + std::string(strerror(errno))));
+				}
+			}
+		} while (errno == EAGAIN);
 		// compare read and written bytes 
 		if (bytes_read == bytes_write) {
 			total += bytes_read;
@@ -56,24 +82,40 @@ void Ipc_pipe::receive() {
 	off_t fileSize(0), total(0);
 	std::vector<char> buffer(PIPE_BUF);
 	// open pipe 
-	while ((fdp = open(name.c_str(), O_RDONLY)) == -1) {
-		std::this_thread::sleep_for (std::chrono::seconds(1));
-	}
+	t.startTimer();
+	do {
+		errno = 0;
+		fdp = open(name.c_str(), O_RDONLY | O_NONBLOCK); 
+		t.checkTimer("Cannot connect to pipeSend. Errno: " + std::string(strerror(errno)), "Connecting pipeSend..");
+	} while(errno == ENOENT);
 	// Start read and write loop
-	while ((bytes = read(fdp, buffer.data(), PIPE_BUF)) != 0) {	
-		if (bytes == -1) {
-			throw(std::runtime_error("Ipc_pipe::receive: read"));
-		}
+	std::cout << "Connected!" << std::endl;
+	// Wait for write end to open the pipe
+	std::this_thread::sleep_for (std::chrono::milliseconds(1));
+	do {
+		t.startTimer();
+		do {
+			errno = 0;
+			bytes = read(fdp, buffer.data(), PIPE_BUF);
+			if (bytes == -1) {
+				if (errno == EAGAIN) {
+					t.checkTimer("Pipe is empty for too long. Errno: " + std::string(strerror(errno)));
+				} else {
+					throw(std::runtime_error("Ipc_pipe::receive: read. Errno: " + std::string(strerror(errno))));
+				}
+			}
+		} while (errno == EAGAIN);
 		// open and write to file
 		buffer.resize(bytes);
 		if (writeFile(filename, total, buffer) == -1) {
 			throw(std::runtime_error("Ipc_pipe::receive: writeFile"));
 		}
 		total += bytes;
-	}
+		//std::this_thread::sleep_for (std::chrono::seconds(10));
+	} while (bytes != 0);
 	
 	if ((fileSize = getFileSize(filename)) == -1) {
-		throw(std::runtime_error("Ipc_method:: getFileSize"));
+		throw(std::runtime_error("Ipc_pipe::receive: getFileSize"));
 	}
 	if (total == fileSize) {
 		std::cout << "Write to file from pipe successfully, exiting the program.." << std::endl;

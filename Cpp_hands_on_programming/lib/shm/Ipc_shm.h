@@ -1,6 +1,7 @@
 #ifndef IPC_SHM
 #define IPC_SHM
 #include "lib/abstract/Ipc_method.h"
+#include "lib/timer/timer.h"
 #include <pthread.h>
 #
 
@@ -15,12 +16,13 @@ private:
     bool init;
     bool sent;
     bool end;
+    Timer t;
+    int returnErrno;
 public:
-    Ipc_shm(std::string name0, std::string file0);
+    Ipc_shm(std::string name0, std::string file0, int timer = 10000);
     virtual ~Ipc_shm();
     void send() override;
     void receive() override;
-    void check_leadingSlash();
     Ipc_shm * get_shared_memory_pointer(std::string name);
     void mutex_init();
     void mutex_lock();
