@@ -30,11 +30,11 @@ The argument is the name of the file being used, e.g `--file filename`
 - Receiver program provide already exist file name and overwrite is not possible
 - File name is the name of an already exist directory name
 
-## Timeout.
+## Timeout
 ### Only one process launched
 One of the two parallel processes is launched but the other is not, i.e sender is launched but receiver is not launched and vice versa. The running process will be terminated with an error message when its timer runs out. 
 ### Two different IPC methods launched
-Two parallel processses are launched with different IPC methods, no connection can be established, both processes will be terminated with an error message when timer runs out.
+Two parallel processses are launched with different IPC methods, no connection can be established, both processes will be terminated with an error message when timer runs out.  
 *E.g*
 ```
 ./bazel-bin/src/send --pipe pipe1 --file myfile
