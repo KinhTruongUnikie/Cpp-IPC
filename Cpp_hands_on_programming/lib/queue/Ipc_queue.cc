@@ -18,7 +18,7 @@ void Ipc_queue::send()
 		throw(std::runtime_error("Ipc_method::send: getFileSize"));
 	}
     // initialize queue attributes
-    attribute_init(DATA_SIZE, 10); // default max size 8192, max msg 10
+    attribute_init(DATA_SIZE, 10);
 
     // open create msg queue
     msg_queue = mq_open(name.c_str(), O_WRONLY | O_CREAT, 0666, &attr);

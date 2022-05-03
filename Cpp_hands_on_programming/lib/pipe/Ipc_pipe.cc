@@ -20,7 +20,7 @@ void Ipc_pipe::send() {
 
 	// create a name pipe
 	if (mkfifo(name.c_str(), 0666) == -1) {
-		throw(std::runtime_error("Ipc_pipe::send: mkfifo"));
+		throw(std::runtime_error("Ipc_pipe::send: mkfifo" + std::string(strerror(errno))));
 	}
 
 	// open name pipes
@@ -30,15 +30,15 @@ void Ipc_pipe::send() {
 		fdp = open(name.c_str(), O_WRONLY | O_NONBLOCK);
 		if (fdp == -1) {
 			if (errno == ENXIO) {
-				//runTimer();
 				t.checkTimer("Cannot connect to pipeReceive. Errno: " + std::string(strerror(errno)), "Connecting pipeReceive..");
 			} else {
 				throw(std::runtime_error("Ipc_pipe::send: open pipe. Errno: " + std::string(strerror(errno))));	
 			}
 		}
 	}while (errno == ENXIO);
-
+	
 	std::cout << "Connected!" << std::endl;	
+	sendHeader(fdp);
 
 	if ((size = getFileSize(filename)) == -1) {
 		throw(std::runtime_error("Ipc_method:: getFileSize"));
@@ -50,9 +50,8 @@ void Ipc_pipe::send() {
 			throw(std::runtime_error("Ipc_pipe::send: readFile"));
 		}
 		// write to pipe
-		t.startTimer();    // reset attempts
+		t.startTimer();   
 		do {
-
 			errno = 0;
 			signal(SIGPIPE, SIG_IGN); // ignore SIGPIPE in case read end is closed 
 			bytes_write = write(fdp, buffer.data(), bytes_read);
@@ -70,16 +69,16 @@ void Ipc_pipe::send() {
 		} else {
 			throw(std::runtime_error("Ipc_pipe::send: read write difference"));
 		}
-	}
-
-	close(fdp);
+	}  
+ 	close(fdp);
 	std::cout << "File delivered by pipe successfully, exiting the program.." << std::endl;
 }
 
 void Ipc_pipe::receive() {
     std::cout << "Starting pipeReceive.." << std::endl;
 	int fdp, bytes;
-	off_t fileSize(0), total(0);
+	off_t fileSize(0), total(0), sendFileSize(0);
+	bool headerSent(false);
 	std::vector<char> buffer(PIPE_BUF);
 	// open pipe 
 	t.startTimer();
@@ -88,10 +87,9 @@ void Ipc_pipe::receive() {
 		fdp = open(name.c_str(), O_RDONLY | O_NONBLOCK); 
 		t.checkTimer("Cannot connect to pipeSend. Errno: " + std::string(strerror(errno)), "Connecting pipeSend..");
 	} while(errno == ENOENT);
-	// Start read and write loop
+
 	std::cout << "Connected!" << std::endl;
-	// Wait for write end to open the pipe
-	std::this_thread::sleep_for (std::chrono::milliseconds(1));
+	// Start read and write loop
 	do {
 		t.startTimer();
 		do {
@@ -104,23 +102,38 @@ void Ipc_pipe::receive() {
 					throw(std::runtime_error("Ipc_pipe::receive: read. Errno: " + std::string(strerror(errno))));
 				}
 			}
-		} while (errno == EAGAIN);
+			else if (!headerSent) {
+				if (bytes == 0) {
+					t.checkTimer("Takes too long for write end to open");
+				} else {
+					auto sendFileName = std::string(buffer.begin(), buffer.begin() + bytes);
+					if ((sendFileSize = getFileSize(sendFileName)) == -1) {
+						throw(std::runtime_error("Ipc_pipe::receive: getFilesize-sendFile. Errno: " + std::string(strerror(errno))));
+					}
+					headerSent = true;
+					total -= bytes;
+				}
+			}
+		} while (errno == EAGAIN || !headerSent);
 		// open and write to file
-		buffer.resize(bytes);
-		if (writeFile(filename, total, buffer) == -1) {
-			throw(std::runtime_error("Ipc_pipe::receive: writeFile"));
+		
+		if (total >= 0) {
+			buffer.resize(bytes);
+			if (writeFile(filename, total, buffer) == -1) {
+				throw(std::runtime_error("Ipc_pipe::receive: writeFile"));
+			}
 		}
 		total += bytes;
-		//std::this_thread::sleep_for (std::chrono::seconds(10));
+		
 	} while (bytes != 0);
-	
+
 	if ((fileSize = getFileSize(filename)) == -1) {
 		throw(std::runtime_error("Ipc_pipe::receive: getFileSize"));
 	}
-	if (total == fileSize) {
+	if (fileSize == sendFileSize) {
 		std::cout << "Write to file from pipe successfully, exiting the program.." << std::endl;
 	} else {
-		throw(std::runtime_error("Ipc_pipe::receive: fileSize and total read difference"));
+		throw(std::runtime_error("Ipc_pipe::receive: Received file and send file different"));
 	}
 
 	close(fdp);
@@ -128,4 +141,12 @@ void Ipc_pipe::receive() {
 
 Ipc_pipe::~Ipc_pipe() {
 	unlink(name.c_str());
+}
+
+void Ipc_pipe::sendHeader(int fd) {
+	if (write(fd, filename.c_str(), filename.length()) == -1) {
+		throw(std::runtime_error("Ipc_pipe::sendHeader fail!"));
+	}
+	// wait for receiver to retrieve the header
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }

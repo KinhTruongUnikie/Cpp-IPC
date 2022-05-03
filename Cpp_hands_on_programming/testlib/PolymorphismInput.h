@@ -21,6 +21,7 @@ protected:
         out << "end";
         out.close();
     }
+    
     static void TearDownTestSuite() {
         unlink("test2");
         unlink("bigfile");

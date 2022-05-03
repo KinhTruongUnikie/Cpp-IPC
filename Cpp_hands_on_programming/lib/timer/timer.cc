@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <thread>
+#include <cstring>
 
 void Timer::startTimer() {
 	start = std::chrono::system_clock::now();
@@ -22,7 +23,9 @@ void Timer::checkTimer(std::string error, std::string msg) {
 }
 
 const timespec& Timer::useTimespec() {
-	clock_gettime(CLOCK_REALTIME, &time);
+	if (clock_gettime(CLOCK_REALTIME, &time) == -1) {
+		throw(std::runtime_error("clock_gettime error. Errno: " + std::string(strerror(errno))));
+	}
 	time.tv_sec += 10;
 	return time;
 }

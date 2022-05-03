@@ -6,7 +6,7 @@
     - [Invalid argument](#invalid-argument)
       - [IPC methods](#ipc-methods)
       - [File](#file)
-  - [Timeout.](#timeout)
+  - [Timeout](#timeout)
     - [Only one process launched](#only-one-process-launched)
     - [Two different IPC methods launched](#two-different-ipc-methods-launched)
     - [One process terminated during run time](#one-process-terminated-during-run-time)
@@ -41,4 +41,4 @@ Two parallel processses are launched with different IPC methods, no connection c
 ./bazel-bin/src/receive --queue /queue1 --file newfile
 ```
 ### One process terminated during run time
-If one process is terminated while both are running, the remaining process will be terminated with an error message when its timer runs out. 
+If one process is terminated while both are running, the remaining process will be terminated with an error message. 

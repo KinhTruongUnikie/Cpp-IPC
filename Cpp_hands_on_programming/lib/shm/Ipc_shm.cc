@@ -40,12 +40,12 @@ void Ipc_shm::send() {
 	shm_ptr->sent = false;
 	shm_ptr->end = false;
 	shm_ptr->init = true;
-	shm_ptr->mutex_unlock();
 	// wait for receiver to connect the shared memory region
-	t.startTimer();
 	while (shm_ptr->init) {
-		t.checkTimer("Shm receive fails to connect shm region", "Connecting to shmReceive..");
+		std::cout << "Connecting to shmReceive.." << std::endl;
+		shm_ptr->condvar_wait();
 	}
+	shm_ptr->mutex_unlock();
     while (total < size) {
 		shm_ptr->mutex_lock();	
 		// check sent status and blocked if data still has not been retrieved 
@@ -145,6 +145,7 @@ Ipc_shm * Ipc_shm::get_shared_memory_pointer(std::string name) {
 	ptr->mutex_lock();
 	ptr->init = false;
 	ptr->mutex_unlock();
+	ptr->condvar_broadcast();
 	return ptr;
 }
 

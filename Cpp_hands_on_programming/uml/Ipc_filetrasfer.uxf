@@ -45,7 +45,7 @@ NONE
 +~Ipc_method()
 +send() : void
 +receive() : void
-+getFileSize(const string &amp;) : int
++getFileSize(const string &amp;) : off_t
 +readFile(const std::string &amp;, int, std::vector&lt;char&gt; &amp;, int) : int
 +writeFile(const std::string &amp;, int, const std::vector&lt;char&gt; &amp;) : int
 </panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>534</x><y>360</y><w>290</w><h>350</h></coordinates><panel_attributes>Ipc_shm
@@ -60,6 +60,7 @@ NONE
 -sent: bool
 -end: bool
 -t: Timer
+-returnErrno: int
 --
 +Ipc_shm(std::string, std::string, int timer);
 +~Ipc_shm()
@@ -123,7 +124,8 @@ SEND
 +Ipc_pipe(std::string, std::string, int timer) 
 +~Ipc_pipe()
 +send() : void
-+receive() : void</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1144</x><y>230</y><w>390</w><h>250</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;100;370;100;370;230</additional_attributes></element><element><id>Relation</id><coordinates><x>1054</x><y>230</y><w>30</w><h>250</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;230</additional_attributes></element><element><id>Relation</id><coordinates><x>644</x><y>230</y><w>280</w><h>150</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>260;10;260;90;10;90;10;130</additional_attributes></element><element><id>Relation</id><coordinates><x>681</x><y>130</y><w>220</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;-</panel_attributes><additional_attributes>200;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>310</x><y>130</y><w>170</w><h>40</h></coordinates><panel_attributes>lt=-
++receive() : void
++sendHeader(int): void</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1144</x><y>230</y><w>390</w><h>250</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;100;370;100;370;230</additional_attributes></element><element><id>Relation</id><coordinates><x>1054</x><y>230</y><w>30</w><h>250</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;230</additional_attributes></element><element><id>Relation</id><coordinates><x>644</x><y>230</y><w>280</w><h>150</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>260;10;260;90;10;90;10;130</additional_attributes></element><element><id>Relation</id><coordinates><x>681</x><y>130</y><w>220</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;-</panel_attributes><additional_attributes>200;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>310</x><y>130</y><w>170</w><h>40</h></coordinates><panel_attributes>lt=-
 </panel_attributes><additional_attributes>150;20;10;20</additional_attributes></element><element><id>Relation</id><coordinates><x>368</x><y>230</y><w>210</w><h>160</h></coordinates><panel_attributes>lt=-
 </panel_attributes><additional_attributes>190;10;190;80;10;80;10;140</additional_attributes></element><element><id>Relation</id><coordinates><x>120</x><y>230</y><w>30</w><h>150</h></coordinates><panel_attributes>lt=-
 </panel_attributes><additional_attributes>10;130;10;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>920</x><y>800</y><w>320</w><h>200</h></coordinates><panel_attributes>Timer
