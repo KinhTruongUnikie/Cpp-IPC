@@ -15,14 +15,13 @@ void Ipc_pipe::send() {
 	// remove potentially existing FIFO
 	unlink(name.c_str());    
 	int fdp, bytes_read(0), bytes_write(0);
-	off_t size, total(0);
+	ssize_t size, total(0);
 	std::vector<char> buffer(PIPE_BUF);
 
 	// create a name pipe
 	if (mkfifo(name.c_str(), 0666) == -1) {
 		throw(std::runtime_error("Ipc_pipe::send: mkfifo" + std::string(strerror(errno))));
 	}
-
 	// open name pipes
 	t.startTimer();
 	do {
@@ -77,7 +76,7 @@ void Ipc_pipe::send() {
 void Ipc_pipe::receive() {
     std::cout << "Starting pipeReceive.." << std::endl;
 	int fdp, bytes;
-	off_t fileSize(0), total(0), sendFileSize(0);
+	ssize_t fileSize(0), total(0), sendFileSize(0);
 	bool headerSent(false);
 	std::vector<char> buffer(PIPE_BUF);
 	// open pipe 
@@ -89,7 +88,7 @@ void Ipc_pipe::receive() {
 	} while(errno == ENOENT);
 
 	std::cout << "Connected!" << std::endl;
-	// Start read and write loop
+	// Start read and write loop	
 	do {
 		t.startTimer();
 		do {
@@ -106,18 +105,27 @@ void Ipc_pipe::receive() {
 				if (bytes == 0) {
 					t.checkTimer("Takes too long for write end to open");
 				} else {
-					auto sendFileName = std::string(buffer.begin(), buffer.begin() + bytes);
+					auto sendFileName = std::string(buffer.data());
 					if ((sendFileSize = getFileSize(sendFileName)) == -1) {
 						throw(std::runtime_error("Ipc_pipe::receive: getFilesize-sendFile. Errno: " + std::string(strerror(errno))));
 					}
+					if(sendFileName == getFileName_absolute(filename)) {
+						throw(std::runtime_error("Ipc_pipe::receive: Received file and send file have to have different names"));
+					}
+
+					int len = strlen(buffer.data());
+					buffer.erase(buffer.begin(), buffer.begin() + len + 1);	
+					if (bytes == len) {
+						bytes = -1;
+					} else {
+						bytes -= len;
+					}
 					headerSent = true;
-					total -= bytes;
 				}
 			}
 		} while (errno == EAGAIN || !headerSent);
 		// open and write to file
-		
-		if (total >= 0) {
+		if (bytes != -1) {
 			buffer.resize(bytes);
 			if (writeFile(filename, total, buffer) == -1) {
 				throw(std::runtime_error("Ipc_pipe::receive: writeFile"));
@@ -125,7 +133,7 @@ void Ipc_pipe::receive() {
 		}
 		total += bytes;
 		
-	} while (bytes != 0);
+	} while (bytes != 0 );
 
 	if ((fileSize = getFileSize(filename)) == -1) {
 		throw(std::runtime_error("Ipc_pipe::receive: getFileSize"));
@@ -135,7 +143,6 @@ void Ipc_pipe::receive() {
 	} else {
 		throw(std::runtime_error("Ipc_pipe::receive: Received file and send file different"));
 	}
-
 	close(fdp);
 }
 
@@ -144,9 +151,8 @@ Ipc_pipe::~Ipc_pipe() {
 }
 
 void Ipc_pipe::sendHeader(int fd) {
-	if (write(fd, filename.c_str(), filename.length()) == -1) {
+	auto header = getFileName_absolute(filename);
+	if (write(fd, header.c_str(), header.length()) == -1) {
 		throw(std::runtime_error("Ipc_pipe::sendHeader fail!"));
 	}
-	// wait for receiver to retrieve the header
-	std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }

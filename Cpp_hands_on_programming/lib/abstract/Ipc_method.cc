@@ -1,8 +1,10 @@
 #include "Ipc_method.h"
 #include <sys/stat.h>
 #include <iostream>
+#include <unistd.h>
+#include <cstring>
 
-off_t Ipc_method::getFileSize(const std::string &filename) {
+ssize_t Ipc_method::getFileSize(const std::string &filename) {
 	// Use stat to find the size of the file
 	struct stat st;
 	if (stat(filename.c_str(), &st) == -1) {
@@ -54,4 +56,12 @@ int Ipc_method::writeFile(const std::string &filename, int total, const std::vec
 	}
 	out.close();
 	return 0;
+}
+
+std::string Ipc_method::getFileName_absolute(const std::string &filename) {
+	auto dir = get_current_dir_name();
+	if (dir == NULL) {
+		throw(std::runtime_error("get_current_dir_name" + std::string(strerror(errno))));
+	}
+	return(std::string(dir) + "/" + filename);
 }

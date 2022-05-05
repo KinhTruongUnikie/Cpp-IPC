@@ -41,6 +41,12 @@ Ipc_info & Prog_init::checkOptions (int argc, char** argv) {
 	// reset optind(the next element to be processed in argv), now it is possible to scan argv multiple times during one process
 	optind = 1;
 	while ((option = getopt_long(argc, argv, "hm:p:q:s:f:", longopts, NULL)) != -1) {
+		if (optarg != nullptr) {
+			auto arg = std::string(optarg);
+			if (arg[0] == '-') {
+				throw(std::runtime_error("Invalid argument: " + arg));
+			}
+		}
 		switch(option) {
 			case 'h': {
 				std::cout << "<HELP>\n"
