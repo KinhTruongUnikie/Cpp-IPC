@@ -44,7 +44,7 @@ Ipc_info & Prog_init::checkOptions (int argc, char** argv) {
 		if (optarg != nullptr) {
 			auto arg = std::string(optarg);
 			if (arg[0] == '-') {
-				throw(std::runtime_error("Invalid argument: " + arg));
+				throw(std::runtime_error("Missing required argument"));
 			}
 		}
 		switch(option) {
