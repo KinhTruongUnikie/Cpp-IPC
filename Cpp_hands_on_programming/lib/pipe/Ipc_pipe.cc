@@ -17,6 +17,7 @@ void Ipc_pipe::send() {
 	int fdp, bytes_read(0), bytes_write(0);
 	ssize_t size, total(0);
 	std::vector<char> buffer(PIPE_BUF);
+	std::ifstream in(filename, std::ios::binary);
 
 	// create a name pipe
 	if (mkfifo(name.c_str(), 0666) == -1) {
@@ -38,14 +39,13 @@ void Ipc_pipe::send() {
 	
 	std::cout << "Connected!" << std::endl;	
 	sendHeader(fdp);
-
 	if ((size = getFileSize(filename)) == -1) {
 		throw(std::runtime_error("Ipc_method:: getFileSize"));
 	}
 	// Start read and write loop
 	while (total < size) {
 		// open and read file 
-		if ((bytes_read = readFile(filename, total, buffer, PIPE_BUF)) == -1) {
+		if ((bytes_read = readFilePipe(in, filename, buffer, PIPE_BUF)) == -1) {
 			throw(std::runtime_error("Ipc_pipe::send: readFile"));
 		}
 		// write to pipe
@@ -70,6 +70,7 @@ void Ipc_pipe::send() {
 		}
 	}  
  	close(fdp);
+	in.close();
 	std::cout << "File delivered by pipe successfully, exiting the program.." << std::endl;
 }
 
@@ -79,6 +80,7 @@ void Ipc_pipe::receive() {
 	ssize_t fileSize(0), total(0), sendFileSize(0);
 	bool headerSent(false);
 	std::vector<char> buffer(PIPE_BUF);
+	std::ofstream out(filename, std::ios::binary | std::ios::app);
 	// open pipe 
 	t.startTimer();
 	do {
@@ -88,6 +90,7 @@ void Ipc_pipe::receive() {
 	} while(errno == ENOENT);
 
 	std::cout << "Connected!" << std::endl;
+	clearFile(filename);
 	// Start read and write loop	
 	do {
 		t.startTimer();
@@ -96,7 +99,7 @@ void Ipc_pipe::receive() {
 			bytes = read(fdp, buffer.data(), PIPE_BUF);
 			if (bytes == -1) {
 				if (errno == EAGAIN) {
-					t.checkTimer("Pipe is empty for too long. Errno: " + std::string(strerror(errno)));
+					t.checkTimer("Pipe is empty for too long. Errno: " + std::string(strerror(errno)));	
 				} else {
 					throw(std::runtime_error("Ipc_pipe::receive: read. Errno: " + std::string(strerror(errno))));
 				}
@@ -105,7 +108,7 @@ void Ipc_pipe::receive() {
 				if (bytes == 0) {
 					t.checkTimer("Takes too long for write end to open");
 				} else {
-					auto sendFileName = std::string(buffer.data());
+					std::string sendFileName(buffer.data());
 					if ((sendFileSize = getFileSize(sendFileName)) == -1) {
 						throw(std::runtime_error("Ipc_pipe::receive: getFilesize-sendFile. Errno: " + std::string(strerror(errno))));
 					}
@@ -113,8 +116,8 @@ void Ipc_pipe::receive() {
 						throw(std::runtime_error("Ipc_pipe::receive: Received file and send file have to have different names"));
 					}
 
-					int len = strlen(buffer.data());
-					buffer.erase(buffer.begin(), buffer.begin() + len + 1);	
+					int len = sendFileName.length() + 1; // include '\0'
+					buffer.erase(buffer.begin(), buffer.begin() + len);	
 					if (bytes == len) {
 						bytes = -1;
 					} else {
@@ -127,14 +130,14 @@ void Ipc_pipe::receive() {
 		// open and write to file
 		if (bytes != -1) {
 			buffer.resize(bytes);
-			if (writeFile(filename, total, buffer) == -1) {
+			if (writeFilePipe(out, filename, buffer) == -1) {
 				throw(std::runtime_error("Ipc_pipe::receive: writeFile"));
 			}
 		}
 		total += bytes;
 		
 	} while (bytes != 0 );
-
+	out.close();
 	if ((fileSize = getFileSize(filename)) == -1) {
 		throw(std::runtime_error("Ipc_pipe::receive: getFileSize"));
 	}
@@ -153,6 +156,9 @@ Ipc_pipe::~Ipc_pipe() {
 void Ipc_pipe::sendHeader(int fd) {
 	auto header = getFileName_absolute(filename);
 	if (write(fd, header.c_str(), header.length()) == -1) {
-		throw(std::runtime_error("Ipc_pipe::sendHeader fail!"));
+		throw(std::runtime_error("Ipc_pipe::send header fail!"));
+	}
+	if (write(fd, "\0", 1) == -1) {
+		throw(std::runtime_error("Ipc_pipe::send header null terminated string fail!"));
 	}
 }
