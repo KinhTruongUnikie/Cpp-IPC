@@ -79,7 +79,7 @@ void Ipc_pipe::receive() {
 	int fdp, bytes;
 	ssize_t fileSize(0), total(0), sendFileSize(0);
 	bool headerSent(false);
-	std::vector<char> buffer(PIPE_BUF);
+	std::vector<char> buffer;
 	std::ofstream out(filename, std::ios::binary | std::ios::app);
 	// open pipe 
 	t.startTimer();
@@ -96,6 +96,7 @@ void Ipc_pipe::receive() {
 		t.startTimer();
 		do {
 			errno = 0;
+			buffer.resize(PIPE_BUF);
 			bytes = read(fdp, buffer.data(), PIPE_BUF);
 			if (bytes == -1) {
 				if (errno == EAGAIN) {
@@ -155,10 +156,7 @@ Ipc_pipe::~Ipc_pipe() {
 
 void Ipc_pipe::sendHeader(int fd) {
 	auto header = getFileName_absolute(filename);
-	if (write(fd, header.c_str(), header.length()) == -1) {
+	if (write(fd, header.c_str(), header.length() + 1) == -1) {
 		throw(std::runtime_error("Ipc_pipe::send header fail!"));
-	}
-	if (write(fd, "\0", 1) == -1) {
-		throw(std::runtime_error("Ipc_pipe::send header null terminated string fail!"));
 	}
 }

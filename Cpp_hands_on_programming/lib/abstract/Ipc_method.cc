@@ -28,10 +28,10 @@ int Ipc_method::readFile(const std::string &filename, int offset, std::vector<ch
 
 	in.read(buffer.data(), size);
 	// check read status, in.gcount condition set to make last read possible
-	if (!in && in.gcount() == size) {
+	if ((!in && in.gcount() == size) || in.gcount() == 0) {
 		std::cerr << "ifstream::read" << std::endl;
 		return -1;
-	}
+	}	
 	in.close();
 	return in.gcount();
 }
@@ -44,7 +44,7 @@ int Ipc_method::readFilePipe(std::ifstream &in, const std::string &filename, std
 
 	in.read(buffer.data(), size);
 	// check read status, in.gcount condition set to make last read possible
-	if (!in && in.gcount() == size) {
+	if ((!in && in.gcount() == size) || in.gcount() == 0)  {
 		std::cerr << "ifstream::read" << std::endl;
 		return -1;
 	}
