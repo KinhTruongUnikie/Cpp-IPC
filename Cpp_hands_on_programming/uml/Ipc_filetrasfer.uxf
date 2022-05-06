@@ -1,4 +1,5 @@
-<diagram program="umletino" version="14.4.0-SNAPSHOT"><zoom_level>10</zoom_level><help_text>&lt;diagram program="umletino" version="14.4.0-SNAPSHOT"&gt;&lt;zoom_level&gt;10&lt;/zoom_level&gt;&lt;element&gt;&lt;id&gt;UMLClass&lt;/id&gt;&lt;coordinates&gt;&lt;x&gt;320&lt;/x&gt;&lt;y&gt;420&lt;/y&gt;&lt;w&gt;200&lt;/w&gt;&lt;h&gt;220&lt;/h&gt;&lt;/coordinates&gt;&lt;panel_attributes&gt;Ipc_pipe
+<diagram program="umletino" version="14.4.0-SNAPSHOT"><zoom_level>10</zoom_level><help_text>&lt;diagram program="umletino" version="14.4.0-SNAPSHOT"&gt;&lt;zoom_level&gt;10&lt;/zoom_level&gt;&lt;element&gt;&lt;id&gt;Relation&lt;/id&gt;&lt;coordinates&gt;&lt;x&gt;310&lt;/x&gt;&lt;y&gt;130&lt;/y&gt;&lt;w&gt;170&lt;/w&gt;&lt;h&gt;40&lt;/h&gt;&lt;/coordinates&gt;&lt;panel_attributes&gt;lt=-
+&lt;/panel_attributes&gt;&lt;additional_attributes&gt;150;20;10;20&lt;/additional_attributes&gt;&lt;/element&gt;&lt;/diagram&gt;&lt;diagram program="umletino" version="14.4.0-SNAPSHOT"&gt;&lt;zoom_level&gt;10&lt;/zoom_level&gt;&lt;element&gt;&lt;id&gt;Relation&lt;/id&gt;&lt;coordinates&gt;&lt;x&gt;1054&lt;/x&gt;&lt;y&gt;230&lt;/y&gt;&lt;w&gt;30&lt;/w&gt;&lt;h&gt;250&lt;/h&gt;&lt;/coordinates&gt;&lt;panel_attributes&gt;lt=&amp;lt;&amp;lt;-&lt;/panel_attributes&gt;&lt;additional_attributes&gt;10;10;10;230&lt;/additional_attributes&gt;&lt;/element&gt;&lt;/diagram&gt;&lt;diagram program="umletino" version="14.4.0-SNAPSHOT"&gt;&lt;zoom_level&gt;10&lt;/zoom_level&gt;&lt;element&gt;&lt;id&gt;UMLClass&lt;/id&gt;&lt;coordinates&gt;&lt;x&gt;320&lt;/x&gt;&lt;y&gt;420&lt;/y&gt;&lt;w&gt;200&lt;/w&gt;&lt;h&gt;220&lt;/h&gt;&lt;/coordinates&gt;&lt;panel_attributes&gt;Ipc_pipe
 --
 ...
 --
@@ -44,16 +45,34 @@ NONE
 +~Ipc_method()
 +send() : void
 +receive() : void
-+getFileSize(const string &amp;) : int
++getFileSize(const string &amp;) : ssize_t
 +readFile(const std::string &amp;, int, std::vector&lt;char&gt; &amp;, int) : int
 +writeFile(const std::string &amp;, int, const std::vector&lt;char&gt; &amp;) : int
-</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>554</x><y>400</y><w>240</w><h>220</h></coordinates><panel_attributes>Ipc_shm
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>534</x><y>360</y><w>290</w><h>350</h></coordinates><panel_attributes>Ipc_shm
 --
-...
+-name: std::string
+-filename: std::string
+-mutex: pthread_mutex_t
+-cond: pthread_cond_t
+-buffer: char[]
+-data_size: int
+-init: bool
+-sent: bool
+-end: bool
+-t: Timer
+-returnErrno: int
 --
++Ipc_shm(std::string, std::string, int timer);
 +~Ipc_shm()
 +send() : void
-+receive() : void</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>464</x><y>0</y><w>220</w><h>240</h></coordinates><panel_attributes>Ipc_info
++receive() : void
++get_shared_memory_pointer(std::string): Ipc_shm*
++mutex_init(): void
++mutex_lock(): void
++mutex_unlock(): void
++condvar_init(): void
++condvar_wait(): void
++condvar_broadcast(): void</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>464</x><y>0</y><w>220</w><h>240</h></coordinates><panel_attributes>Ipc_info
 --
 -filename: string
 -argument: string
@@ -80,30 +99,46 @@ RECEIVE
 SEND
 </panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>20</y><w>320</w><h>220</h></coordinates><panel_attributes>Prog_init
 --
-...
+-info: Ipc_info
 --
 +printInstruction() : void
-+checkOptions (int , char**) : Ipc_info
-+run_IPC(const Ipc_info &amp;,  send_or_receive) : void</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1060</x><y>410</y><w>440</w><h>220</h></coordinates><panel_attributes>Ipc_queue
++checkOptions (int , char**) : &amp;Ipc_info
++run_IPC(Send_or_receive) : void</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1330</x><y>460</y><w>440</w><h>220</h></coordinates><panel_attributes>Ipc_queue
 --
 -name: std::string
 -filename: std::string
--msg_queue: mqd_t
--attr: mq_attr
+-msg_queue: struct mqd_t
+-attr: struct mq_attr
+-t: Timer
 --
-+Ipc_queue(std::string, std::string) 
++Ipc_queue(std::string, std::string, int timer) 
 +~Ipc_queue()
 +attribute_init(int, int)() : void
 +send() : void
-+receive() : void</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>770</x><y>660</y><w>430</w><h>220</h></coordinates><panel_attributes>Ipc_pipe
++receive() : void</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>850</x><y>460</y><w>420</w><h>220</h></coordinates><panel_attributes>Ipc_pipe
 --
 -name: std::string
 -filename: std::string
+-t: Timer
 --
-+Ipc_pipe(std::string, std::string) 
++Ipc_pipe(std::string, std::string, int timer) 
 +~Ipc_pipe()
 +send() : void
-+receive() : void</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1014</x><y>230</y><w>250</w><h>200</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;100;230;100;230;180</additional_attributes></element><element><id>Relation</id><coordinates><x>974</x><y>230</y><w>30</w><h>450</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;430</additional_attributes></element><element><id>Relation</id><coordinates><x>664</x><y>230</y><w>260</w><h>190</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>240;10;240;110;10;110;10;170</additional_attributes></element><element><id>Relation</id><coordinates><x>681</x><y>130</y><w>220</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;-</panel_attributes><additional_attributes>200;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>310</x><y>130</y><w>170</w><h>40</h></coordinates><panel_attributes>lt=-
++receive() : void
++sendHeader(int): void</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1144</x><y>230</y><w>390</w><h>250</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;100;370;100;370;230</additional_attributes></element><element><id>Relation</id><coordinates><x>1054</x><y>230</y><w>30</w><h>250</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;230</additional_attributes></element><element><id>Relation</id><coordinates><x>644</x><y>230</y><w>280</w><h>150</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>260;10;260;90;10;90;10;130</additional_attributes></element><element><id>Relation</id><coordinates><x>681</x><y>130</y><w>220</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;-</panel_attributes><additional_attributes>200;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>310</x><y>130</y><w>170</w><h>40</h></coordinates><panel_attributes>lt=-
 </panel_attributes><additional_attributes>150;20;10;20</additional_attributes></element><element><id>Relation</id><coordinates><x>368</x><y>230</y><w>210</w><h>160</h></coordinates><panel_attributes>lt=-
 </panel_attributes><additional_attributes>190;10;190;80;10;80;10;140</additional_attributes></element><element><id>Relation</id><coordinates><x>120</x><y>230</y><w>30</w><h>150</h></coordinates><panel_attributes>lt=-
-</panel_attributes><additional_attributes>10;130;10;10</additional_attributes></element></diagram>
+</panel_attributes><additional_attributes>10;130;10;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>920</x><y>800</y><w>320</w><h>200</h></coordinates><panel_attributes>Timer
+--
+-timeLimit: int
+-start: std::chrono::time_point&lt;std::chrono::system_clock&gt;
+-end: std::chrono::time_point&lt;std::chrono::system_clock&gt;
+-time: struct timespec
+--
++Timer(int ms)
++startTimer(): void
++checkTimer(std::string, std::string): void
++useTimespec(): const struct timespec &amp;</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1050</x><y>667</y><w>30</w><h>150</h></coordinates><panel_attributes>lt=-
+</panel_attributes><additional_attributes>10;130;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>640</x><y>697</y><w>300</w><h>240</h></coordinates><panel_attributes>lt=-
+</panel_attributes><additional_attributes>280;220;10;220;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1227</x><y>667</y><w>250</w><h>270</h></coordinates><panel_attributes>lt=-
+</panel_attributes><additional_attributes>10;250;230;250;230;10</additional_attributes></element></diagram>

@@ -11,11 +11,6 @@ int main(int argc, char* argv[]) {
 		Prog_init start;
 		start.printInstruction();
 		start.checkOptions(argc, argv);
-		if (start.fileExist()) {
-			if (!start.overwritable()) {
-				throw(std::runtime_error("Received file already exist!"));
-			}
-		}
 		start.run_IPC(Send_or_receive::RECEIVE);
 	}
 	catch(const std::exception &e) {

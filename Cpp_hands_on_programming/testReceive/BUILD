@@ -3,6 +3,7 @@ cc_test (
   srcs = ["testReceive.cc"],
   deps = [
     "@com_google_googletest//:gtest_main",
-    "//lib:classes",
+    "//lib:classes", 
+    "//testlib:testlib",
   ],
 )

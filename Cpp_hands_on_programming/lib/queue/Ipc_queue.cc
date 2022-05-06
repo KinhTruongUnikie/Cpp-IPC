@@ -12,12 +12,13 @@ void Ipc_queue::send()
     std::vector<char> buffer(DATA_SIZE);
     int bytes;
     off_t size(0), total(0);
+    bool connected(false);
 
    	if ((size = getFileSize(filename)) == -1) {
 		throw(std::runtime_error("Ipc_method::send: getFileSize"));
 	}
     // initialize queue attributes
-    attribute_init(DATA_SIZE, 10); // default max size 8192, max msg 10
+    attribute_init(DATA_SIZE, 10);
 
     // open create msg queue
     msg_queue = mq_open(name.c_str(), O_WRONLY | O_CREAT, 0666, &attr);
@@ -25,7 +26,7 @@ void Ipc_queue::send()
     {
         throw(std::runtime_error("Ipc_queue::send: mq_open"));
     }
-
+  
     // Start read send loop
     while (total < size)
     {
@@ -33,17 +34,28 @@ void Ipc_queue::send()
         {
             throw(std::runtime_error("Ipc_queue::send: readFile"));
         }
-        
-        if (mq_send(msg_queue, buffer.data(), bytes, 0) == -1) {
-            throw(std::runtime_error("Ipc_queue::send: mq_send"));
+
+        if (mq_timedsend(msg_queue, buffer.data(), bytes, 0, &t.useTimespec()) == -1) {
+            throw(std::runtime_error("Ipc_queue::send: mq_timedsend. Errno: " + std::string(strerror(errno))));
         }
         
+        if (!connected){
+            t.startTimer();
+            do {
+                t.checkTimer("Cannot connect to queueReceive..", "Connecting queueReceive..");
+                mq_getattr(msg_queue, &attr);
+            } while (attr.mq_curmsgs == 1);
+            connected = true;
+        }
+
         total += bytes;
         if (total == size) {
-            if (mq_send(msg_queue, buffer.data(), 0, 0) == -1) {
-                throw(std::runtime_error("Ipc_queue::send: mq_send 0 byte message"));
+            if (mq_timedsend(msg_queue, buffer.data(), 0, 0, &t.useTimespec()) == -1) {
+                throw(std::runtime_error("Ipc_queue::send: mq_send 0 byte message. Errno: " + std::string(strerror(errno))));
             }
         }
+        
+
     }
 
     if (total == size) {
@@ -61,19 +73,21 @@ void Ipc_queue::receive()
     int bytes;
     off_t size(0), total(0);
     // open msg queue loop
-	while ((msg_queue = mq_open(name.c_str(), O_RDONLY)) == -1) {
-		std::this_thread::sleep_for (std::chrono::seconds(1));
-	}
-    
+    t.startTimer();
+	do {
+		errno = 0;
+		msg_queue = mq_open(name.c_str(), O_RDONLY);
+		t.checkTimer("Cannot connect to queueSend. Errno: " + std::string(strerror(errno)), "Connecting queueSend..");
+	} while(errno == ENOENT);
     // get queue attr 
     mq_getattr(msg_queue, &attr);
     // initialize buffer size
     buffer.resize(attr.mq_msgsize);
-
+    
     // Start receive write loop 
     do {
-        if ((bytes = mq_receive(msg_queue, buffer.data(), attr.mq_msgsize, 0)) == -1) {
-            throw(std::runtime_error("Ipc_queue::receive: mq_receive"));
+        if ((bytes = mq_timedreceive(msg_queue, buffer.data(), attr.mq_msgsize, 0, &t.useTimespec())) == -1) {
+            throw(std::runtime_error("Ipc_queue::receive: mq_timedreceive. Errno: " + std::string(strerror(errno))));
         }
         buffer.resize(bytes);
         if (writeFile(filename, total, buffer) == -1) {
@@ -92,12 +106,13 @@ void Ipc_queue::receive()
     }
 }   
 
-Ipc_queue::Ipc_queue(std::string name0, std::string file0) {
+Ipc_queue::Ipc_queue(std::string name0, std::string file0, int time) {
     if (name0[0] != '/' || name0.find('/', 1) != std::string::npos || name0.length() <= 1) {
         throw(std::runtime_error("Ipc_queue::Constructor: queue name must starts with leading slash '/' and followed by non-slash characters"));
-    }
+    }   
     name = name0;
     filename = file0;
+    t = Timer(time);
 }
 
 void Ipc_queue::attribute_init(int msgSize, int maxMsg)
