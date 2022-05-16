@@ -9,7 +9,6 @@ void Timer::startTimer() {
 }
 
 void Timer::checkTimer(std::string error, std::string msg) {
-	//check timer
 	end = std::chrono::system_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
 	if (duration <= timeLimit) {
@@ -26,6 +25,6 @@ const timespec& Timer::useTimespec() {
 	if (clock_gettime(CLOCK_REALTIME, &time) == -1) {
 		throw(std::runtime_error("clock_gettime error. Errno: " + std::string(strerror(errno))));
 	}
-	time.tv_sec += 10;
+	time.tv_sec += timeLimit/ 1000;
 	return time;
 }

@@ -45,7 +45,7 @@ void Ipc_pipe::send() {
 	// Start read and write loop
 	while (total < size) {
 		// open and read file 
-		if ((bytes_read = readFilePipe(in, filename, buffer, PIPE_BUF)) == -1) {
+		if ((bytes_read = readFile(in, filename, buffer, PIPE_BUF)) == -1) {
 			throw(std::runtime_error("Ipc_pipe::send: readFile"));
 		}
 		// write to pipe
@@ -90,7 +90,6 @@ void Ipc_pipe::receive() {
 	} while(errno == ENOENT);
 
 	std::cout << "Connected!" << std::endl;
-	clearFile(filename);
 	// Start read and write loop	
 	do {
 		t.startTimer();
@@ -116,7 +115,7 @@ void Ipc_pipe::receive() {
 					if(sendFileName == getFileName_absolute(filename)) {
 						throw(std::runtime_error("Ipc_pipe::receive: Received file and send file have to have different names"));
 					}
-
+					clearFile(filename);
 					int len = sendFileName.length() + 1; // include '\0'
 					buffer.erase(buffer.begin(), buffer.begin() + len);	
 					if (bytes == len) {
@@ -131,12 +130,11 @@ void Ipc_pipe::receive() {
 		// open and write to file
 		if (bytes != -1) {
 			buffer.resize(bytes);
-			if (writeFilePipe(out, filename, buffer) == -1) {
+			if (writeFile(out, filename, buffer) == -1) {
 				throw(std::runtime_error("Ipc_pipe::receive: writeFile"));
 			}
+			total += bytes;
 		}
-		total += bytes;
-		
 	} while (bytes != 0 );
 	out.close();
 	if ((fileSize = getFileSize(filename)) == -1) {

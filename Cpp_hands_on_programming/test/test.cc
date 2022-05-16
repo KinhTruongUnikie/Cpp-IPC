@@ -132,7 +132,7 @@ TEST_P(Prog_initParamTest, OptionBehavior) {
         p[i] = &v[i][0];
     }
     //Start checking test result
-    
+        
     if (option_map.first.find("Succeed") != std::string::npos) {
         auto actual = init.checkOptions(v.size(), p);
         EXPECT_THAT(expected.getFilename(), testing::Eq(actual.getFilename()));
@@ -149,19 +149,43 @@ TEST_P(Prog_initParamTest, OptionBehavior) {
     }
 }
 
-// TEST(ThreadTest, SendReceiveData) {
-//     auto f = [](std::shared_ptr<Ipc_method> m, Send_or_receive side) {
-//         if (side == Send_or_receive::SEND) {
-//             m->send();
-//             EXPECT_TRUE(true);
-//         } else {
-//             m->receive();
-//             EXPECT_TRUE(true);
-//         }
-//     };
-//     std::thread send(f, std::make_shared<Ipc_pipe>("gpipe", "test2"), Send_or_receive::SEND); 
-//     std::thread receive(f, std::make_shared<Ipc_pipe>("gpipe", "fileGtest"), Send_or_receive::RECEIVE);
-//     send.join();
-//     receive.join();
-//     unlink("fileGtest");
-// }
+class ThreadParamTest : public::testing::TestWithParam<std::pair<const std::string, std::shared_ptr<Ipc_method>>> {
+protected:
+    static void SetUpTestSuite() {
+        std::ofstream out("same");
+        out.seekp(DATA_SIZE*20);
+        out << "end";
+        out.close();
+    }
+
+    static void TearDownTestSuite() {
+        unlink("same");
+    }
+};
+
+std::map<std::string, std::shared_ptr<Ipc_method>> ipc_pointer1 = {
+    {"pipe", std::make_shared<Ipc_pipe>("threadpipe", "same", 1000)},
+    {"queue", std::make_shared<Ipc_queue>("/threadqueue", "same", 1000)},
+    {"shm", std::make_shared<Ipc_shm>("/threadshm", "same", 1000)}
+};
+
+INSTANTIATE_TEST_SUITE_P(ThreadTest, ThreadParamTest,
+testing::ValuesIn(ipc_pointer1), 
+[](const testing::TestParamInfo<ThreadParamTest::ParamType> &info) {
+    return info.param.first;
+});
+
+TEST_P(ThreadParamTest, SameName) {
+    CaptureStdOut capture;
+    auto f = [](std::shared_ptr<Ipc_method> m, Send_or_receive side) {
+        if (side == Send_or_receive::SEND) {
+            EXPECT_THROW(m->send(), std::runtime_error);
+        } else {
+            EXPECT_THROW(m->receive(), std::runtime_error);
+        }
+    };
+    std::thread send(f, GetParam().second, Send_or_receive::SEND); 
+    std::thread receive(f, GetParam().second, Send_or_receive::RECEIVE);
+    send.join();
+    receive.join();
+}

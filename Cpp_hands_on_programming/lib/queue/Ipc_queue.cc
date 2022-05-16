@@ -11,11 +11,12 @@ void Ipc_queue::send()
     
     std::vector<char> buffer(DATA_SIZE);
     int bytes;
-    off_t size(0), total(0);
+    ssize_t size(0), total(0);
     bool connected(false);
+    std::ifstream in(filename, std::ios::binary);
 
    	if ((size = getFileSize(filename)) == -1) {
-		throw(std::runtime_error("Ipc_method::send: getFileSize"));
+		throw(std::runtime_error("Ipc_method::send: getFileS ize"));
 	}
     // initialize queue attributes
     attribute_init(DATA_SIZE, 10);
@@ -30,34 +31,36 @@ void Ipc_queue::send()
     // Start read send loop
     while (total < size)
     {
-        if ((bytes = readFile(filename, total, buffer, DATA_SIZE)) == -1)
-        {
+        if ((bytes = readFile(in, filename, buffer, DATA_SIZE)) == -1) {
             throw(std::runtime_error("Ipc_queue::send: readFile"));
+        }
+
+        if (!connected){
+            auto header = getFileName_absolute(filename);
+            if (mq_send(msg_queue, header.c_str(), header.length(), 0) == -1) {
+                throw(std::runtime_error("Ipc_queue::send: mq_send. Errno: " + std::string(strerror(errno))));
+            }
+            t.startTimer();
+            do {
+                t.checkTimer("Cannot connect to queueReceive", "Connecting queueReceive..");
+                mq_getattr(msg_queue, &attr);
+            } while (attr.mq_curmsgs == 1);
+            connected = true; 
         }
 
         if (mq_timedsend(msg_queue, buffer.data(), bytes, 0, &t.useTimespec()) == -1) {
             throw(std::runtime_error("Ipc_queue::send: mq_timedsend. Errno: " + std::string(strerror(errno))));
         }
         
-        if (!connected){
-            t.startTimer();
-            do {
-                t.checkTimer("Cannot connect to queueReceive..", "Connecting queueReceive..");
-                mq_getattr(msg_queue, &attr);
-            } while (attr.mq_curmsgs == 1);
-            connected = true;
-        }
-
         total += bytes;
+        
         if (total == size) {
             if (mq_timedsend(msg_queue, buffer.data(), 0, 0, &t.useTimespec()) == -1) {
                 throw(std::runtime_error("Ipc_queue::send: mq_send 0 byte message. Errno: " + std::string(strerror(errno))));
             }
         }
-        
-
     }
-
+    in.close();
     if (total == size) {
         std::cout << "File delivered by queue successfully, exiting the program.."  << std::endl;
     } else {
@@ -71,7 +74,10 @@ void Ipc_queue::receive()
 
     std::vector<char> buffer;
     int bytes;
-    off_t size(0), total(0);
+    ssize_t size(0), total(0), sendFileSize(0);
+    std::string sendFileName;
+    bool headerSent(false);
+    std::ofstream out(filename, std::ios::binary | std::ios::app);
     // open msg queue loop
     t.startTimer();
 	do {
@@ -83,23 +89,39 @@ void Ipc_queue::receive()
     mq_getattr(msg_queue, &attr);
     // initialize buffer size
     buffer.resize(attr.mq_msgsize);
-    
     // Start receive write loop 
     do {
         if ((bytes = mq_timedreceive(msg_queue, buffer.data(), attr.mq_msgsize, 0, &t.useTimespec())) == -1) {
             throw(std::runtime_error("Ipc_queue::receive: mq_timedreceive. Errno: " + std::string(strerror(errno))));
         }
-        buffer.resize(bytes);
-        if (writeFile(filename, total, buffer) == -1) {
-            throw(std::runtime_error("Ipc_queue::receive: writeFile"));
+
+        if (!headerSent) {
+  			sendFileName = std::string(buffer.begin(), buffer.begin() + bytes);
+			if ((sendFileSize = getFileSize(sendFileName)) == -1) {
+				throw(std::runtime_error("Ipc_queue::receive: getFilesize-sendFile. Errno: " + std::string(strerror(errno))));
+			}
+            if (sendFileName == getFileName_absolute(filename)) {
+                throw(std::runtime_error("Ipc_queue::receive: Received file and send file have to have different names"));
+            }
+            clearFile(filename);
+			headerSent = true;
+            bytes = -1;
         }
-        total += bytes;
+
+        if (bytes != -1) {
+            buffer.resize(bytes);
+            if (writeFile(out, filename, buffer) == -1) {
+                throw(std::runtime_error("Ipc_queue::receive: writeFile"));
+            }
+            total += bytes;
+        }
     } while (bytes != 0);
+    out.close();
     // get newly written file size
     if ((size = getFileSize(filename)) == -1) {
 		throw(std::runtime_error("Ipc_method::receive: getFileSize"));
 	}
-    if (size == total) {
+    if (size == sendFileSize) {
         std::cout << "Write to file from queue successfully, exiting the program.."  << std::endl;
     } else {
         throw(std::runtime_error("Ipc_queue::receive: File sizes difference between sent file and receive file"));

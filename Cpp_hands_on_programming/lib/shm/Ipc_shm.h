@@ -3,7 +3,7 @@
 #include "lib/abstract/Ipc_method.h"
 #include "lib/timer/timer.h"
 #include <pthread.h>
-#
+#include <limits.h>
 
 class Ipc_shm : public Ipc_method {
 private:
@@ -12,6 +12,7 @@ private:
     pthread_mutex_t mutex;
     pthread_cond_t cond;
     char buffer[DATA_SIZE];
+    char sendFileName[NAME_MAX];
     int data_size;
     bool init;
     bool sent;
