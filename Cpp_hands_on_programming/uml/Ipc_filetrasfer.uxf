@@ -48,6 +48,8 @@ NONE
 +getFileSize(const string &amp;) : ssize_t
 +readFile(const std::string &amp;, int, std::vector&lt;char&gt; &amp;, int) : int
 +writeFile(const std::string &amp;, int, const std::vector&lt;char&gt; &amp;) : int
++clearFile(std::string) : void
++getFileName_absolute(const std::string) : std::string
 </panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>534</x><y>360</y><w>290</w><h>350</h></coordinates><panel_attributes>Ipc_shm
 --
 -name: std::string

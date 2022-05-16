@@ -29,6 +29,7 @@ The argument is the name of the file being used, e.g `--file filename`
 - Sender program provide nonexist file name
 - Receiver program provide already exist file name and overwrite is not possible
 - File name is the name of an already exist directory name
+- Identical names(sender and receiver)
 
 ## Timeout
 ### Only one process launched
